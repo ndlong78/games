@@ -17,8 +17,13 @@ const installDiagnostics = () => {
   });
 
   setInterval(() => {
-    try { BBMV.utils.ensureVisibleScreen(); } catch (err) { console.error('[BBMV] Screen watchdog failed:', err); }
-  }, 1200);
+    if (BBMV.utils._transitioning) return;
+    try {
+      BBMV.utils.ensureVisibleScreen();
+    } catch (err) {
+      console.error('[BBMV] Screen watchdog failed:', err);
+    }
+  }, 3000);
 };
 
 const initApp = () => {
