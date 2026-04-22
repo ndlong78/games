@@ -170,15 +170,21 @@ BBMV.utils = {
 
   // Hiển thị/ẩn screen
   showScreen: (id) => {
+    const target = BBMV.utils.$(id);
+    if (!target) {
+      // Không được ẩn toàn bộ màn hình nếu id sai — tránh rơi vào "màn hình trắng"
+      console.error(`[BBMV] showScreen: không tìm thấy màn hình "${id}"`);
+      return false;
+    }
+
     document.querySelectorAll('.screen').forEach(s => {
       s.classList.remove('active', 'slide-in');
     });
-    const target = BBMV.utils.$(id);
-    if (target) {
-      target.classList.add('active');
-      // Trigger animation
-      requestAnimationFrame(() => target.classList.add('slide-in'));
-    }
+
+    target.classList.add('active');
+    // Trigger animation
+    requestAnimationFrame(() => target.classList.add('slide-in'));
+    return true;
   },
 
   // Tải script động (lazy-load)

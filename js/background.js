@@ -228,6 +228,7 @@ BBMV.background = (() => {
 
   // ── Vẽ toàn bộ scene nền ──
   const draw = (ctx, w, h, t, dpr) => {
+    if (!ctx || !w || !h || !Number.isFinite(w) || !Number.isFinite(h)) return;
     const W = w * dpr, H = h * dpr;
     ctx.save();
     ctx.scale(dpr, dpr);
@@ -346,9 +347,16 @@ BBMV.background = (() => {
     let prevW = 0, prevH = 0;
     const animate = () => {
       const { w, h, dpr } = BBMV.utils.resizeCanvas(canvas);
+      if (!w || !h) {
+        // Khi screen vừa chuyển trạng thái, kích thước có thể tạm thời = 0
+        // => chờ frame sau để tránh lỗi render khiến app "trắng" trên một số máy.
+        menuRaf = requestAnimationFrame(animate);
+        return;
+      }
       menuW = w; menuH = h; menuDpr = dpr;
       if (!menuCtx) {
         menuCtx = canvas.getContext('2d');
+        if (!menuCtx) return;
       }
       // Khởi tạo hoặc re-init khi đổi kích thước màn hình
       if (!clouds.length || Math.abs(w - prevW) > 20 || Math.abs(h - prevH) > 20) {
