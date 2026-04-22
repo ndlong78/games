@@ -8,6 +8,7 @@ BBMV.report = (() => {
   let chartInstances = {};
   let pinFailCount = 0;
   let pinLockUntil = 0;
+  let tabsBound = false;
 
   const isValidSession = (s) => !!(
     s &&
@@ -34,7 +35,6 @@ BBMV.report = (() => {
     eyeCoverAIResult: String(s.eyeCoverAIResult || 'unknown')
   });
 
-  // ── Lưu session ──
   const saveSession = (session) => {
     const sessions = BBMV.utils.lsGet(LS_KEY, []);
     if (!isValidSession(session)) return;
@@ -115,6 +115,7 @@ BBMV.report = (() => {
   };
 
   const bindReportTabs = () => {
+    if (tabsBound) return;
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('pointerdown', () => {
         BBMV.audio.sfx.button();
@@ -123,6 +124,7 @@ BBMV.report = (() => {
         renderReportContent(btn.dataset.tab);
       });
     });
+    tabsBound = true;
   };
 
   const renderReportContent = async (tab) => {
@@ -150,9 +152,7 @@ BBMV.report = (() => {
     const coverCount = sessions.filter(s => s.eyeCoverConfirmed).length;
     const coverRate = sessions.length > 0 ? Math.round(coverCount / sessions.length * 100) : 0;
     const streak = BBMV.gamification.getStreak(profile.id);
-    const avgAcc = sessions.length > 0
-      ? Math.round(sessions.reduce((a, s) => a + (s.trackingAccuracy || 0), 0) / sessions.length)
-      : 0;
+    const avgAcc = sessions.length > 0 ? Math.round(sessions.reduce((a, s) => a + (s.trackingAccuracy || 0), 0) / sessions.length) : 0;
 
     const hh = Math.floor(totalTime / 3600);
     const mm = Math.floor((totalTime % 3600) / 60);
@@ -207,8 +207,10 @@ BBMV.report = (() => {
           type: 'bar',
           data: {
             labels: data.labels,
-            datasets: [{ label: 'Thời gian (phút)', data: data.minutes, backgroundColor: 'rgba(197,232,176,0.7)', borderColor: '#6BC95A', borderWidth: 2, borderRadius: 6 },
-              { label: 'Sao ⭐', data: data.stars, backgroundColor: 'rgba(255,224,102,0.7)', borderColor: '#FFB800', borderWidth: 2, borderRadius: 6, yAxisID: 'y1' }]
+            datasets: [
+              { label: 'Thời gian (phút)', data: data.minutes, backgroundColor: 'rgba(197,232,176,0.7)', borderColor: '#6BC95A', borderWidth: 2, borderRadius: 6 },
+              { label: 'Sao ⭐', data: data.stars, backgroundColor: 'rgba(255,224,102,0.7)', borderColor: '#FFB800', borderWidth: 2, borderRadius: 6, yAxisID: 'y1' }
+            ]
           },
           options: { responsive: true }
         });
@@ -416,16 +418,14 @@ BBMV.report = (() => {
   };
 
   const sanitizeProfiles = (profiles) => Array.isArray(profiles)
-    ? profiles
-        .filter(p => p && typeof p.id === 'string')
-        .map(p => ({
-          id: String(p.id),
-          name: BBMV.utils.sanitizeChildName(p.name || 'Bé yêu') || 'Bé yêu',
-          avatar: typeof p.avatar === 'string' ? p.avatar : '🐣',
-          age: Math.max(3, Math.min(10, Number(p.age || 5))),
-          eye: ['left', 'right', 'both'].includes(p.eye) ? p.eye : 'right',
-          createdAt: typeof p.createdAt === 'string' ? p.createdAt : BBMV.utils.now()
-        }))
+    ? profiles.filter(p => p && typeof p.id === 'string').map(p => ({
+        id: String(p.id),
+        name: BBMV.utils.sanitizeChildName(p.name || 'Bé yêu') || 'Bé yêu',
+        avatar: typeof p.avatar === 'string' ? p.avatar : '🐣',
+        age: Math.max(3, Math.min(10, Number(p.age || 5))),
+        eye: ['left', 'right', 'both'].includes(p.eye) ? p.eye : 'right',
+        createdAt: typeof p.createdAt === 'string' ? p.createdAt : BBMV.utils.now()
+      }))
     : [];
 
   const backup = () => {
@@ -482,6 +482,8 @@ BBMV.report = (() => {
       BBMV.utils.$('report-locked').style.display = '';
       BBMV.utils.$('report-content').classList.add('hidden');
       initPinPad();
+      tabsBound = false;
+      document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
       BBMV.utils.showScreen('screen-report');
     });
     BBMV.utils.$('btn-report-back')?.addEventListener('pointerdown', () => {
