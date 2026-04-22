@@ -5,6 +5,7 @@
 - Tạo hồ sơ mới thành công.
 - Chọn hồ sơ → vào menu chính.
 - Mở Cài đặt rồi quay lại không lỗi màn hình trắng.
+- Bấm vào profile card trên GitHub Pages sau deploy mới → không bị nền trắng.
 
 ## 2. Đổi PIN báo cáo
 - Vào Cài đặt → Đổi mật khẩu.
@@ -57,12 +58,17 @@
 - Restore từ file backup chuẩn → dữ liệu quay lại đúng.
 - Restore file JSON lỗi / chỉnh tay sai định dạng → app báo lỗi, không crash.
 
-## 9. PWA / offline
-- Cài app lên màn hình chính được.
-- Tải app xong, reload khi offline vẫn mở được core app.
-- Sau khi đã từng mở báo cáo/PDF online, thử lại offline để kiểm tra cache thư viện.
+## 9. GitHub Pages / cache / deploy
+- Sau deploy mới, mở app từ domain GitHub Pages → không bị trắng màn hình.
+- Sau refresh thường → app vẫn vào được màn profile.
+- Sau hard reload → app vẫn vào được.
+- Nếu đã từng cài về Home Screen, thử mở lại bản web trong Safari để chắc không bị xung đột cache.
 
-## 10. Responsive
+## 10. PWA / offline
+- Banner cài app vẫn hiển thị khi trình duyệt hỗ trợ.
+- Sau khi mở báo cáo/PDF online ít nhất 1 lần, kiểm tra lại luồng đó khi mạng chập chờn.
+
+## 11. Responsive
 - Test trên mobile portrait.
 - Test trên tablet / iPad.
 - Test landscape để chắc HUD và menu không chồng lấp.
