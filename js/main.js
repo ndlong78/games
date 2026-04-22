@@ -63,7 +63,7 @@ const initApp = () => {
     const profiles = BBMV.profile.getAll();
     if (profiles.length > 0) {
       setTimeout(() => {
-        BBMV.audio.init();
+        // Chỉ đọc giọng nói, không khởi tạo AudioContext ở đây để tránh warning autoplay.
         BBMV.audio.speak('Chào con! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!');
       }, 500);
     }
