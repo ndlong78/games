@@ -5,19 +5,32 @@
 BBMV.pwa = (() => {
   let deferredPrompt = null;
 
-  const register = () => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('[BBMV] SW registered:', reg.scope))
-        .catch(err => console.error('[BBMV] SW error:', err));
+  const clearOldCachesAndWorkers = async () => {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      console.log('[BBMV] Cleared old service workers and caches');
+    } catch (err) {
+      console.error('[BBMV] Failed clearing service workers/caches:', err);
     }
-    // Bắt sự kiện install prompt (Android Chrome)
+  };
+
+  const register = async () => {
+    // Tạm thời gỡ SW cũ để tránh lỗi trắng màn hình do lệch cache asset trên Safari/GitHub Pages.
+    await clearOldCachesAndWorkers();
+
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
       const banner = BBMV.utils.$('install-banner');
       if (banner) banner.classList.remove('hidden');
     });
+
     window.addEventListener('appinstalled', () => {
       deferredPrompt = null;
       const banner = BBMV.utils.$('install-banner');
@@ -40,5 +53,5 @@ BBMV.pwa = (() => {
     });
   };
 
-  return { register, bindEvents };
+  return { register, bindEvents, clearOldCachesAndWorkers };
 })();
