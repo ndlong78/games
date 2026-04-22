@@ -5,6 +5,9 @@
 const BBMV = window.BBMV || {};
 
 BBMV.utils = {
+  _lastScreenId: null,
+  _transitioning: false,
+
   $: (id) => document.getElementById(id),
   lerp: (a, b, t) => a + (b - a) * t,
   dist: (x1, y1, x2, y2) => Math.sqrt((x2-x1)**2 + (y2-y1)**2),
@@ -96,6 +99,10 @@ BBMV.utils = {
     };
   },
 
+  setTransitioning: (value) => {
+    BBMV.utils._transitioning = !!value;
+  },
+
   showScreen: (id) => {
     const target = BBMV.utils.$(id);
     if (!target) {
@@ -103,14 +110,20 @@ BBMV.utils = {
       return false;
     }
 
+    BBMV.utils.setTransitioning(true);
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'slide-in'));
     target.classList.add('active');
     BBMV.utils._lastScreenId = id;
-    requestAnimationFrame(() => target.classList.add('slide-in'));
+
+    requestAnimationFrame(() => {
+      target.classList.add('slide-in');
+      setTimeout(() => BBMV.utils.setTransitioning(false), 500);
+    });
     return true;
   },
 
   ensureVisibleScreen: () => {
+    if (BBMV.utils._transitioning) return true;
     const active = document.querySelector('.screen.active');
     if (active) return true;
     const fallbackId = BBMV.utils._lastScreenId || 'screen-profiles';
