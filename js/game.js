@@ -19,6 +19,7 @@ BBMV.game = (() => {
   let maxCombo = 0;
   let currentCombo = 0;
   let comboTimer = 0;
+  let catchTimestamps = [];
 
   // Input tracking
   let pointerX = -999, pointerY = -999;
@@ -52,8 +53,10 @@ BBMV.game = (() => {
     sessionStars = 0; sessionDuration = 0;
     maxCombo = 0; currentCombo = 0;
     trackingFrames = 0; totalFrames = 0;
+    catchTimestamps = [];
     lastTime = 0;
     BBMV.game._lastEyeCoverConfirmed = false;
+    BBMV.game._lastEyeCoverAIResult = 'unknown';
 
     const { w: bgW, h: bgH } = BBMV.utils.resizeCanvas(canvas);
     BBMV.background.initElements(bgW, bgH);
@@ -72,7 +75,6 @@ BBMV.game = (() => {
     butterflies = [];
     const cfg = LEVEL_CONFIG[level];
     BBMV.utils.resizeCanvas(canvas); // đảm bảo canvas đã đúng kích thước
-    const dpr = window.devicePixelRatio || 1;
     const W = canvas.width, H = canvas.height;
     const profile = BBMV.profile.getCurrent();
     const earnedBadges = profile ? BBMV.gamification.getBadges(profile.id) : {};
@@ -107,12 +109,18 @@ BBMV.game = (() => {
     // Cập nhật & vẽ bướm
     let anyClose = false;
     butterflies.forEach(b => {
+      const wasAlive = b.alive;
+      const wasExploding = b.exploding;
       b.update(dt);
       b.draw(ctx, dpr);
 
       if (!b.caught && !b.exploding) {
         const d = BBMV.utils.dist(pointerX, pointerY, b.x * dpr, b.y * dpr);
         if (d < b.baseSize * dpr * 1.5) anyClose = true;
+      }
+
+      if (wasAlive && !wasExploding && !b.alive && !b.caught) {
+        onMiss(b);
       }
     });
 
@@ -176,6 +184,8 @@ BBMV.game = (() => {
     currentCombo++;
     comboTimer = 2.5;
     if (currentCombo > maxCombo) maxCombo = currentCombo;
+    catchTimestamps.push(performance.now());
+    catchTimestamps = catchTimestamps.filter(t => performance.now() - t <= 10000);
 
     BBMV.background.addParticles(b.x * dpr, b.y * dpr, dpr);
     BBMV.audio.sfx.catch();
@@ -214,6 +224,25 @@ BBMV.game = (() => {
     }, 1000);
   };
 
+  const onMiss = (b) => {
+    if (gameState !== 'playing') return;
+    missedCount++;
+    currentCombo = 0;
+    comboTimer = 0;
+    BBMV.audio.sfx.miss();
+    butterflies = butterflies.filter(x => x !== b);
+
+    setTimeout(() => {
+      if (gameState !== 'playing') return;
+      const { w, h, dpr: d } = BBMV.utils.resizeCanvas(canvas);
+      const profile = BBMV.profile.getCurrent();
+      const earnedBadges = profile ? BBMV.gamification.getBadges(profile.id) : {};
+      const unlocked = Object.keys(earnedBadges).length;
+      const newB = new BBMV.Butterfly(w * d, h * d, level, Math.floor(Math.random() * Math.min(unlocked + 1, 3)));
+      butterflies.push(newB);
+    }, 350);
+  };
+
   const showComboText = (text) => {
     const el = BBMV.utils.$('combo-text');
     if (!el) return;
@@ -239,15 +268,13 @@ BBMV.game = (() => {
 
   const showComplete = () => {
     const profile = BBMV.profile.getCurrent();
-    const cfg = LEVEL_CONFIG[level];
 
-    // Tính sao (1-3)
-    const catchRate = caughtCount / totalButterflyTarget;
-    let stars = 1;
-    if (catchRate >= 0.9) stars = 3;
-    else if (catchRate >= 0.65) stars = 2;
-
+    const attempts = caughtCount + missedCount;
+    const successRate = attempts > 0 ? (caughtCount / attempts) : 0;
     const trackAcc = totalFrames > 0 ? Math.round((trackingFrames / totalFrames) * 100) : 0;
+    let stars = 1;
+    if (successRate >= 0.9 && trackAcc >= 75) stars = 3;
+    else if (successRate >= 0.7 && trackAcc >= 50) stars = 2;
 
     // Lưu session
     if (profile) {
@@ -259,23 +286,25 @@ BBMV.game = (() => {
         stars,
         durationSeconds: Math.round(sessionDuration),
         butterfliesCaught: caughtCount,
-        butterfliesTotal: totalButterflyTarget,
+        butterfliesMissed: missedCount,
+        butterfliesTotal: attempts,
         trackingAccuracy: trackAcc,
         maxCombo,
+        speedRecord: Math.max(0, catchTimestamps.length),
         eyeCoverConfirmed: BBMV.game._lastEyeCoverConfirmed || false,
-        eyeCoverAIResult: 'skipped'
+        eyeCoverAIResult: BBMV.game._lastEyeCoverAIResult || 'unknown'
       };
       BBMV.report.saveSession(session);
 
       // Update streak
-      const streak = BBMV.gamification.updateStreak(profile.id);
+      BBMV.gamification.updateStreak(profile.id);
 
       // Check badges
       const stats = BBMV.gamification.calcStats(profile.id);
       const newBadges = BBMV.gamification.checkBadges(profile.id, stats);
 
       // Render complete screen
-      renderComplete(stars, caughtCount, totalButterflyTarget, trackAcc, Math.round(sessionDuration), newBadges);
+      renderComplete(stars, caughtCount, attempts, trackAcc, Math.round(sessionDuration), newBadges, missedCount, successRate);
     }
 
     BBMV.audio.sfx.levelup();
@@ -287,7 +316,7 @@ BBMV.game = (() => {
     BBMV.utils.showScreen('screen-complete');
   };
 
-  const renderComplete = (stars, caught, total, acc, dur, newBadges) => {
+  const renderComplete = (stars, caught, total, acc, dur, newBadges, missed = 0, successRate = 0) => {
     // Sao
     const starsEl = BBMV.utils.$('complete-stars');
     if (starsEl) {
@@ -303,6 +332,8 @@ BBMV.game = (() => {
     if (statsEl) {
       statsEl.innerHTML = `
         <div class="stat-row"><span class="stat-label">🦋 Bướm bắt được</span><span class="stat-value">${caught}/${total}</span></div>
+        <div class="stat-row"><span class="stat-label">❌ Bướm bỏ lỡ</span><span class="stat-value">${missed}</span></div>
+        <div class="stat-row"><span class="stat-label">✅ Tỷ lệ bắt</span><span class="stat-value">${Math.round(successRate * 100)}%</span></div>
         <div class="stat-row"><span class="stat-label">🎯 Độ chính xác</span><span class="stat-value">${acc}%</span></div>
         <div class="stat-row"><span class="stat-label">⏱ Thời gian</span><span class="stat-value">${BBMV.utils.formatTime(dur)}</span></div>
         <div class="stat-row"><span class="stat-label">🔥 Combo tối đa</span><span class="stat-value">x${maxCombo}</span></div>
