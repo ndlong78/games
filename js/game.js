@@ -24,14 +24,13 @@ BBMV.game = (() => {
   // Input tracking
   let pointerX = -999, pointerY = -999;
   let pointerDown = false;
-  let holdStart = 0;        // timestamp khi bắt đầu giữ gần bướm
-  let holdTargetId = null;  // bướm đang theo sát
+  let holdStart = 0;
+  let holdTargetId = null;
   let trackingFrames = 0;
   let totalFrames = 0;
 
-  // Config
   const LEVEL_CONFIG = [
-    null, // index 0 unused
+    null,
     { butterflies: 1, speed: 1, holdMs: 2000, wavesTotal: 3 },
     { butterflies: 2, speed: 1.5, holdMs: 1800, wavesTotal: 3 },
     { butterflies: 3, speed: 2.2, holdMs: 1500, wavesTotal: 3 },
@@ -45,8 +44,7 @@ BBMV.game = (() => {
     bindHUD();
   };
 
-  // ── Bắt đầu game ──
-  const startGame = (lvl = 1, wv = 1) => {
+  const startGame = (lvl = 1, wv = 1, options = {}) => {
     level = lvl; wave = wv;
     gameState = 'playing';
     caughtCount = 0; missedCount = 0;
@@ -55,8 +53,9 @@ BBMV.game = (() => {
     trackingFrames = 0; totalFrames = 0;
     catchTimestamps = [];
     lastTime = 0;
-    BBMV.game._lastEyeCoverConfirmed = false;
-    BBMV.game._lastEyeCoverAIResult = 'unknown';
+
+    BBMV.game._lastEyeCoverConfirmed = !!options.eyeCoverConfirmed;
+    BBMV.game._lastEyeCoverAIResult = options.eyeCoverAIResult || 'unknown';
 
     const { w: bgW, h: bgH } = BBMV.utils.resizeCanvas(canvas);
     BBMV.background.initElements(bgW, bgH);
@@ -74,7 +73,7 @@ BBMV.game = (() => {
   const spawnWave = () => {
     butterflies = [];
     const cfg = LEVEL_CONFIG[level];
-    BBMV.utils.resizeCanvas(canvas); // đảm bảo canvas đã đúng kích thước
+    BBMV.utils.resizeCanvas(canvas);
     const W = canvas.width, H = canvas.height;
     const profile = BBMV.profile.getCurrent();
     const earnedBadges = profile ? BBMV.gamification.getBadges(profile.id) : {};
@@ -84,11 +83,10 @@ BBMV.game = (() => {
       const skinIdx = Math.floor(Math.random() * Math.min(unlockedSkins + 1, 3));
       butterflies.push(new BBMV.Butterfly(W, H, level, skinIdx));
     }
-    totalButterflyTarget = cfg.butterflies * 2; // 2 vòng mỗi wave
+    totalButterflyTarget = cfg.butterflies * 2;
     updateHUD();
   };
 
-  // ── Game Loop ──
   const loop = (ts) => {
     if (gameState !== 'playing') return;
     raf = requestAnimationFrame(loop);
@@ -99,14 +97,9 @@ BBMV.game = (() => {
     totalFrames++;
 
     const { w, h, dpr } = BBMV.utils.resizeCanvas(canvas);
-
-    // Xóa canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Vẽ nền
     BBMV.background.draw(ctx, w, h, sessionDuration, dpr);
 
-    // Cập nhật & vẽ bướm
     let anyClose = false;
     butterflies.forEach(b => {
       const wasAlive = b.alive;
@@ -119,31 +112,21 @@ BBMV.game = (() => {
         if (d < b.baseSize * dpr * 1.5) anyClose = true;
       }
 
-      if (wasAlive && !wasExploding && !b.alive && !b.caught) {
-        onMiss(b);
-      }
+      if (wasAlive && !wasExploding && !b.alive && !b.caught) onMiss(b);
     });
 
-    // Tracking accuracy
     if (anyClose) trackingFrames++;
-
-    // Vẽ particles
     BBMV.background.updateDrawParticles(ctx, dpr);
-
-    // Xử lý hold/catch
     updateCatch(dpr);
 
-    // Combo timer
     if (comboTimer > 0) {
       comboTimer -= dt;
-      if (comboTimer <= 0) { currentCombo = 0; }
+      if (comboTimer <= 0) currentCombo = 0;
     }
 
-    // Kiểm tra bướm đã bắt / wave complete
     checkWaveProgress();
     updateHUD();
 
-    // Timer HUD
     const timerEl = BBMV.utils.$('hud-timer');
     if (timerEl) timerEl.textContent = `⏱ ${Math.floor(sessionDuration)}s`;
   };
@@ -184,20 +167,14 @@ BBMV.game = (() => {
     currentCombo++;
     comboTimer = 2.5;
     if (currentCombo > maxCombo) maxCombo = currentCombo;
-    catchTimestamps.push(performance.now());
-    catchTimestamps = catchTimestamps.filter(t => performance.now() - t <= 10000);
+    const now = performance.now();
+    catchTimestamps.push(now);
+    catchTimestamps = catchTimestamps.filter(t => now - t <= 10000);
 
     BBMV.background.addParticles(b.x * dpr, b.y * dpr, dpr);
     BBMV.audio.sfx.catch();
 
-    const praises = [
-      'Giỏi quá! Con theo dõi bướm rất đẹp!',
-      'Tuyệt vời!',
-      'Siêu giỏi!',
-      'Con giỏi quá!'
-    ];
-
-    // Hiển thị combo text
+    const praises = ['Giỏi quá! Con theo dõi bướm rất đẹp!','Tuyệt vời!','Siêu giỏi!','Con giỏi quá!'];
     if (currentCombo >= 3) {
       showComboText(`🔥 Combo x${currentCombo}!`);
       BBMV.audio.speak(`Combo x${currentCombo}! Giỏi quá!`);
@@ -206,12 +183,10 @@ BBMV.game = (() => {
       if (Math.random() < 0.4) BBMV.audio.speak(praises[0]);
     }
 
-    // Sao từng lần bắt
     BBMV.audio.sfx.star();
     sessionStars++;
     updateHUD();
 
-    // Hồi sinh bướm mới sau 1 giây
     setTimeout(() => {
       if (gameState !== 'playing') return;
       const { w, h, dpr: d } = BBMV.utils.resizeCanvas(canvas);
@@ -259,7 +234,6 @@ BBMV.game = (() => {
 
   const checkWaveProgress = () => {
     if (caughtCount < totalButterflyTarget) return;
-    // Wave complete
     cancelAnimationFrame(raf);
     gameState = 'complete';
     BBMV.audio.stopMusic();
@@ -268,7 +242,6 @@ BBMV.game = (() => {
 
   const showComplete = () => {
     const profile = BBMV.profile.getCurrent();
-
     const attempts = caughtCount + missedCount;
     const successRate = attempts > 0 ? (caughtCount / attempts) : 0;
     const trackAcc = totalFrames > 0 ? Math.round((trackingFrames / totalFrames) * 100) : 0;
@@ -276,7 +249,6 @@ BBMV.game = (() => {
     if (successRate >= 0.9 && trackAcc >= 75) stars = 3;
     else if (successRate >= 0.7 && trackAcc >= 50) stars = 2;
 
-    // Lưu session
     if (profile) {
       const session = {
         profileId: profile.id,
@@ -295,39 +267,25 @@ BBMV.game = (() => {
         eyeCoverAIResult: BBMV.game._lastEyeCoverAIResult || 'unknown'
       };
       BBMV.report.saveSession(session);
-
-      // Update streak
       BBMV.gamification.updateStreak(profile.id);
-
-      // Check badges
       const stats = BBMV.gamification.calcStats(profile.id);
       const newBadges = BBMV.gamification.checkBadges(profile.id, stats);
-
-      // Render complete screen
       renderComplete(stars, caughtCount, attempts, trackAcc, Math.round(sessionDuration), newBadges, missedCount, successRate);
     }
 
     BBMV.audio.sfx.levelup();
     const msgs = ['Chúc mừng con!', 'Con giỏi lắm!', 'Tuyệt vời!'];
-    BBMV.audio.speak(
-      `${msgs[stars-1]} Màn này được ${stars} sao!`, true
-    );
-
+    BBMV.audio.speak(`${msgs[stars-1]} Màn này được ${stars} sao!`, true);
     BBMV.utils.showScreen('screen-complete');
   };
 
   const renderComplete = (stars, caught, total, acc, dur, newBadges, missed = 0, successRate = 0) => {
-    // Sao
     const starsEl = BBMV.utils.$('complete-stars');
-    if (starsEl) {
-      starsEl.textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
-    }
-    // Title
-    const titles = ['Cố lên nhé! 💪', 'Giỏi lắm! 😊', 'Xuất sắc! 🎉'];
+    if (starsEl) starsEl.textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
     const titleEl = BBMV.utils.$('complete-title');
+    const titles = ['Cố lên nhé! 💪', 'Giỏi lắm! 😊', 'Xuất sắc! 🎉'];
     if (titleEl) titleEl.textContent = titles[stars - 1];
 
-    // Stats
     const statsEl = BBMV.utils.$('complete-stats');
     if (statsEl) {
       statsEl.innerHTML = `
@@ -341,17 +299,15 @@ BBMV.game = (() => {
       `;
     }
 
-    // Badge mới
     BBMV.gamification.showNewBadge(newBadges);
 
-    // Nút tiếp theo
     const btnNext = BBMV.utils.$('btn-next-level');
     if (btnNext) {
       const nextLevel = stars === 3 ? Math.min(level + 1, 4) : level;
       btnNext.onclick = () => {
         BBMV.audio.sfx.button();
         BBMV.utils.showScreen('screen-game');
-        startGame(nextLevel, 1);
+        startGame(nextLevel, 1, { eyeCoverConfirmed: false, eyeCoverAIResult: 'unknown' });
       };
     }
   };
@@ -368,10 +324,8 @@ BBMV.game = (() => {
     }
   };
 
-  // ── Input handlers ──
   const bindInput = () => {
     if (!canvas) return;
-
     const onMove = (e) => {
       e.preventDefault();
       const pos = BBMV.utils.getEventPos(e, canvas);
@@ -392,13 +346,10 @@ BBMV.game = (() => {
       butterflies.forEach(b => { b.catchProgress = 0; });
     };
 
-    // Touch events (iOS)
     canvas.addEventListener('touchstart', onDown, { passive: false });
     canvas.addEventListener('touchmove', onMove, { passive: false });
     canvas.addEventListener('touchend', onUp, { passive: false });
     canvas.addEventListener('touchcancel', onUp, { passive: false });
-
-    // Mouse events
     canvas.addEventListener('mousedown', onDown);
     canvas.addEventListener('mousemove', onMove);
     canvas.addEventListener('mouseup', onUp);
@@ -406,7 +357,6 @@ BBMV.game = (() => {
   };
 
   const bindHUD = () => {
-    // Pause
     BBMV.utils.$('btn-pause')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
       pauseGame();
@@ -418,19 +368,17 @@ BBMV.game = (() => {
     BBMV.utils.$('btn-restart')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
       BBMV.utils.$('pause-overlay').classList.add('hidden');
-      startGame(level, wave);
+      startGame(level, wave, { eyeCoverConfirmed: false, eyeCoverAIResult: 'unknown' });
     });
     BBMV.utils.$('btn-to-menu')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
       stopGame();
       BBMV.utils.showScreen('screen-menu');
     });
-
-    // Complete screen
     BBMV.utils.$('btn-replay')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
       BBMV.utils.showScreen('screen-game');
-      startGame(level, wave);
+      startGame(level, wave, { eyeCoverConfirmed: false, eyeCoverAIResult: 'unknown' });
     });
     BBMV.utils.$('btn-complete-menu')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
