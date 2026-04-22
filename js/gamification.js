@@ -103,16 +103,16 @@ BBMV.gamification = (() => {
     const data = all[profileId] || { streak: 0, lastPlayDate: null };
     const today = BBMV.utils.today();
 
-    if (data.lastPlayDate === today) return data.streak; // đã tính rồi
+    if (data.lastPlayDate === today) return data.streak;
 
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yStr = yesterday.toISOString().split('T')[0];
 
     if (data.lastPlayDate === yStr) {
-      data.streak += 1; // chuỗi tiếp tục
+      data.streak += 1;
     } else if (data.lastPlayDate !== today) {
-      data.streak = 1; // chuỗi mới
+      data.streak = 1;
     }
     data.lastPlayDate = today;
     all[profileId] = data;
@@ -133,17 +133,16 @@ BBMV.gamification = (() => {
     const eyeCoverCount = mySessions.filter(s => s.eyeCoverConfirmed).length;
     const highAccuracySessions = mySessions.filter(s => (s.trackingAccuracy || 0) >= 90).length;
 
-    // Level 4 với 3 sao
     const level4Stars3Count = mySessions.filter(s => s.level === 4 && s.stars === 3).length;
 
-    // Số ngày chơi khác nhau
-    const playDays = new Set(mySessions.map(s => s.date?.split('T')[0]));
+    const playDays = new Set(mySessions.map(s => s.date?.split('T')[0]).filter(Boolean));
     const totalPlayDays = playDays.size;
+    const speedRecord = mySessions.reduce((a, s) => Math.max(a, s.speedRecord || 0), 0);
 
     return {
       totalCaught, maxCombo, currentStreak, eyeCoverCount,
       highAccuracySessions, level4Stars3Count, totalPlayDays,
-      speedRecord: 0 // TODO: implement speed tracking
+      speedRecord
     };
   };
 
