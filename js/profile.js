@@ -12,12 +12,10 @@ BBMV.profile = (() => {
   let selectedAge = 5;
   let selectedEye = 'right';
   let editingId = null;
-  let skipConfirmCount = 0; // double-tap guard cho nút bỏ qua
+  let skipConfirmCount = 0;
 
-  // ── Đọc/ghi danh sách profile ──
   const getAll = () => BBMV.utils.lsGet(LS_KEY, []);
   const saveAll = (list) => BBMV.utils.lsSet(LS_KEY, list);
-
   const getById = (id) => getAll().find(p => p.id === id) || null;
 
   const getCurrent = () => {
@@ -27,18 +25,10 @@ BBMV.profile = (() => {
 
   const setCurrent = (id) => { currentProfileId = id; };
 
-  // ── CRUD ──
   const create = (name, avatar, age, eye) => {
     const list = getAll();
     const safeName = BBMV.utils.sanitizeChildName(name);
-    const p = {
-      id: BBMV.utils.uuid(),
-      name: safeName,
-      avatar,
-      age,
-      eye,
-      createdAt: BBMV.utils.now()
-    };
+    const p = { id: BBMV.utils.uuid(), name: safeName, avatar, age, eye, createdAt: BBMV.utils.now() };
     list.push(p);
     saveAll(list);
     return p;
@@ -57,12 +47,10 @@ BBMV.profile = (() => {
     let list = getAll();
     list = list.filter(p => p.id !== id);
     saveAll(list);
-    // Xóa dữ liệu session của profile này
     const sessions = BBMV.utils.lsGet('bbmv_sessions', []);
     BBMV.utils.lsSet('bbmv_sessions', sessions.filter(s => s.profileId !== id));
   };
 
-  // ── Render màn hình chọn profile ──
   const renderProfilesScreen = () => {
     const grid = BBMV.utils.$('profiles-grid');
     if (!grid) return;
@@ -86,7 +74,6 @@ BBMV.profile = (() => {
       `;
       card.addEventListener('pointerdown', (e) => {
         if (e.target.classList.contains('profile-delete')) return;
-        BBMV.audio.resume();
         BBMV.audio.sfx.button();
         setCurrent(p.id);
         renderMenuScreen();
@@ -108,7 +95,6 @@ BBMV.profile = (() => {
     });
   };
 
-  // ── Modal thêm/sửa profile ──
   const openModal = (id = null) => {
     editingId = id;
     const modal = BBMV.utils.$('modal-profile');
@@ -212,7 +198,6 @@ BBMV.profile = (() => {
     });
   };
 
-  // ── Render menu screen với thông tin profile hiện tại ──
   const renderMenuScreen = () => {
     const p = getCurrent();
     if (!p) return;
@@ -221,15 +206,11 @@ BBMV.profile = (() => {
     if (chipAvatar) chipAvatar.textContent = p.avatar;
     if (chipName) chipName.textContent = p.name;
 
-    // Streak
     const streak = BBMV.gamification ? BBMV.gamification.getStreak(p.id) : 0;
     const streakEl = BBMV.utils.$('menu-streak');
-    if (streakEl) {
-      streakEl.textContent = streak > 0 ? `🔥 ${streak} ngày` : `🌟 Chơi thôi!`;
-    }
+    if (streakEl) streakEl.textContent = streak > 0 ? `🔥 ${streak} ngày` : `🌟 Chơi thôi!`;
   };
 
-  // ── Bind sự kiện ──
   const bindEvents = () => {
     BBMV.utils.$('btn-add-profile')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
@@ -248,7 +229,6 @@ BBMV.profile = (() => {
       BBMV.utils.showScreen('screen-profiles');
       renderProfilesScreen();
     });
-    // Đóng modal khi click ngoài
     BBMV.utils.$('modal-profile')?.addEventListener('pointerdown', (e) => {
       if (e.target === BBMV.utils.$('modal-profile')) closeModal();
     });
