@@ -26,8 +26,30 @@ const installDiagnostics = () => {
   }, 3000);
 };
 
+const installAudioUnlock = () => {
+  let unlocked = false;
+
+  const unlock = async () => {
+    if (unlocked) return;
+    unlocked = true;
+    try {
+      await BBMV.audio.resume();
+    } catch (err) {
+      console.warn('[BBMV] Audio unlock failed:', err);
+    }
+    document.removeEventListener('pointerdown', unlock, true);
+    document.removeEventListener('touchstart', unlock, true);
+    document.removeEventListener('keydown', unlock, true);
+  };
+
+  document.addEventListener('pointerdown', unlock, true);
+  document.addEventListener('touchstart', unlock, true);
+  document.addEventListener('keydown', unlock, true);
+};
+
 const initApp = () => {
   installDiagnostics();
+  installAudioUnlock();
 
   const bar = BBMV.utils.$('loading-bar');
   const txt = BBMV.utils.$('loading-text');
@@ -79,7 +101,6 @@ const bindAllEvents = () => {
   BBMV.pwa.bindEvents();
 
   BBMV.utils.$('btn-play')?.addEventListener('pointerdown', () => {
-    BBMV.audio.resume();
     BBMV.audio.sfx.button();
     const profile = BBMV.profile.getCurrent();
     if (!profile) {
