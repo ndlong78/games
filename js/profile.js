@@ -30,9 +30,10 @@ BBMV.profile = (() => {
   // ── CRUD ──
   const create = (name, avatar, age, eye) => {
     const list = getAll();
+    const safeName = BBMV.utils.sanitizeChildName(name);
     const p = {
       id: BBMV.utils.uuid(),
-      name: name.trim(),
+      name: safeName,
       avatar,
       age,
       eye,
@@ -79,7 +80,7 @@ BBMV.profile = (() => {
       card.className = 'profile-card';
       card.innerHTML = `
         <div class="profile-avatar">${p.avatar}</div>
-        <div class="profile-name">${p.name}</div>
+        <div class="profile-name">${BBMV.utils.escapeHTML(p.name)}</div>
         <div class="profile-info">${p.age} tuổi · ${EYE_LABEL[p.eye] || ''}</div>
         <button class="profile-delete" data-id="${p.id}" title="Xóa hồ sơ">✕</button>
       `;
@@ -142,9 +143,10 @@ BBMV.profile = (() => {
   };
 
   const saveModal = () => {
-    const name = BBMV.utils.$('input-name').value.trim();
-    if (!name) {
-      BBMV.utils.showToast('Vui lòng nhập tên bé! 😊');
+    const rawName = BBMV.utils.$('input-name').value;
+    const name = BBMV.utils.sanitizeChildName(rawName);
+    if (!BBMV.utils.isValidChildName(name)) {
+      BBMV.utils.showToast('Tên bé cần từ 1-20 ký tự hợp lệ! 😊');
       return;
     }
     if (editingId) {
