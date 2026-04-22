@@ -11,13 +11,20 @@ BBMV.settings = (() => {
     voiceEnabled: true,
     butterflySize: 'medium',
     highContrast: false,
-    reportPassword: '1234',
+    reportPasswordHash: BBMV.utils.hashPin('1234'),
     language: 'vi'
   };
 
   const get = () => {
     const saved = BBMV.utils.lsGet(LS_KEY, {});
-    return { ...DEFAULTS, ...saved };
+    const merged = { ...DEFAULTS, ...saved };
+    // Migration: dữ liệu cũ lưu plaintext reportPassword
+    if (saved.reportPassword && !saved.reportPasswordHash) {
+      merged.reportPasswordHash = BBMV.utils.hashPin(saved.reportPassword);
+      delete merged.reportPassword;
+      BBMV.utils.lsSet(LS_KEY, merged);
+    }
+    return merged;
   };
 
   const set = (key, val) => {
@@ -185,7 +192,7 @@ BBMV.settings = (() => {
       BBMV.audio.sfx.button();
       const newPwd = prompt('Nhập mật khẩu mới (4 chữ số):');
       if (newPwd && /^\d{4}$/.test(newPwd)) {
-        set('reportPassword', newPwd);
+        set('reportPasswordHash', BBMV.utils.hashPin(newPwd));
         BBMV.utils.showToast('Đã đổi mật khẩu!');
       } else if (newPwd !== null) {
         BBMV.utils.showToast('Mật khẩu phải là 4 chữ số!');
@@ -196,7 +203,7 @@ BBMV.settings = (() => {
       BBMV.utils.confirm(
         '⚠️ Xóa toàn bộ dữ liệu? Hành động này không thể hoàn tác!',
         () => {
-          localStorage.clear();
+          BBMV.utils.lsClearByPrefix('bbmv_');
           BBMV.utils.showToast('Đã xóa toàn bộ dữ liệu');
           BBMV.utils.showScreen('screen-profiles');
           BBMV.profile.renderProfilesScreen();

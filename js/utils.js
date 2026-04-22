@@ -68,6 +68,38 @@ BBMV.utils = {
   // Tạo UUID đơn giản
   uuid: () => Math.random().toString(36).slice(2) + Date.now().toString(36),
 
+  // Escape HTML để tránh chèn script khi dùng innerHTML
+  escapeHTML: (value) => String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;'),
+
+  // Làm sạch tên bé: bỏ khoảng trắng dư + loại ký tự nguy hiểm
+  sanitizeChildName: (value) => String(value ?? '')
+    .replace(/[<>"'`&]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim(),
+
+  // Validate tên bé theo chuẩn tối thiểu
+  isValidChildName: (value) => {
+    const n = BBMV.utils.sanitizeChildName(value);
+    return n.length >= 1 && n.length <= 20;
+  },
+
+  // Hash PIN dạng nhẹ để không lưu plaintext trực tiếp trong localStorage
+  // Lưu ý: đây không phải hash mật mã mạnh, chỉ nhằm giảm lộ dữ liệu trực tiếp.
+  hashPin: (pin) => {
+    const text = `bbmv_pin:${String(pin ?? '')}`;
+    let h = 2166136261;
+    for (let i = 0; i < text.length; i++) {
+      h ^= text.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return `fnv1a_${(h >>> 0).toString(16).padStart(8, '0')}`;
+  },
+
   // Deep clone object
   clone: (obj) => JSON.parse(JSON.stringify(obj)),
 
@@ -87,6 +119,19 @@ BBMV.utils = {
 
   // Xóa localStorage key
   lsDel: (key) => { try { localStorage.removeItem(key); } catch(e) {} },
+
+  // Xóa localStorage theo prefix key để tránh xóa nhầm app khác cùng origin
+  lsClearByPrefix: (prefix) => {
+    try {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(prefix)) keys.push(k);
+      }
+      keys.forEach(k => localStorage.removeItem(k));
+      return keys.length;
+    } catch(e) { return 0; }
+  },
 
   // Kiểm tra dung lượng localStorage (trả về MB đã dùng xấp xỉ)
   lsUsedMB: () => {
@@ -190,7 +235,7 @@ BBMV.utils = {
       <div style="background:white;border-radius:24px;padding:28px 24px;max-width:320px;width:100%;
         display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 60px rgba(45,74,90,0.3);">
         <p style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:700;color:#2D4A5A;
-          text-align:center;line-height:1.4;">${msg}</p>
+          text-align:center;line-height:1.4;">${BBMV.utils.escapeHTML(msg)}</p>
         <div style="display:flex;gap:12px;">
           <button id="_cfm-no" style="flex:1;background:rgba(200,230,240,0.5);border:2px solid rgba(200,230,240,0.8);
             border-radius:99px;padding:14px;font-size:16px;font-weight:700;font-family:'Nunito',sans-serif;

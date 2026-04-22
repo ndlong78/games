@@ -6,10 +6,19 @@ BBMV.report = (() => {
   const LS_KEY = 'bbmv_sessions';
   let pinBuffer = '';
   let chartInstances = {};
+  let pinFailCount = 0;
+  let pinLockUntil = 0;
+
+  const isValidSession = (s) => !!(
+    s &&
+    typeof s.profileId === 'string' &&
+    typeof s.date === 'string'
+  );
 
   // ── Lưu session ──
   const saveSession = (session) => {
     const sessions = BBMV.utils.lsGet(LS_KEY, []);
+    if (!isValidSession(session)) return;
     sessions.push(session);
     // Giữ tối đa 365 session
     if (sessions.length > 365) sessions.splice(0, sessions.length - 365);
@@ -17,7 +26,9 @@ BBMV.report = (() => {
   };
 
   const getSessions = (profileId) => {
-    return BBMV.utils.lsGet(LS_KEY, []).filter(s => s.profileId === profileId);
+    return BBMV.utils.lsGet(LS_KEY, [])
+      .filter(isValidSession)
+      .filter(s => s.profileId === profileId);
   };
 
   // ── PIN pad ──
@@ -56,13 +67,26 @@ BBMV.report = (() => {
   };
 
   const checkPin = () => {
+    const now = Date.now();
+    if (pinLockUntil > now) {
+      const waitSec = Math.ceil((pinLockUntil - now) / 1000);
+      BBMV.utils.showToast(`🔒 Tạm khóa ${waitSec}s do nhập sai nhiều lần`);
+      return;
+    }
+
     const s = BBMV.settings.get();
-    if (pinBuffer === s.reportPassword) {
+    if (BBMV.utils.hashPin(pinBuffer) === s.reportPasswordHash) {
+      pinFailCount = 0;
       BBMV.utils.$('report-locked').style.display = 'none';
       BBMV.utils.$('report-content').classList.remove('hidden');
       renderReportContent('overview');
       bindReportTabs();
     } else {
+      pinFailCount++;
+      if (pinFailCount >= 5) {
+        pinLockUntil = now + 30000;
+        pinFailCount = 0;
+      }
       pinBuffer = '';
       updatePinDisplay();
       BBMV.utils.showToast('Mật khẩu không đúng! Thử lại nhé 🔒');
@@ -475,7 +499,8 @@ BBMV.report = (() => {
       doc.setFontSize(8); doc.setTextColor(150, 150, 150);
       doc.text(`Tao boi Buom Bay Mat Vui | ${BBMV.utils.formatDate(BBMV.utils.now())}`, W/2, 290, { align: 'center' });
 
-      doc.save(`BaoCao_${profile.name}_${BBMV.utils.today()}.pdf`);
+      const safeName = BBMV.utils.sanitizeChildName(profile.name || 'be');
+      doc.save(`BaoCao_${safeName || 'be'}_${BBMV.utils.today()}.pdf`);
       BBMV.utils.showToast('✅ Đã xuất PDF thành công!');
     } catch(e) {
       console.error('[BBMV] PDF export error:', e);
@@ -511,7 +536,7 @@ BBMV.report = (() => {
         const data = JSON.parse(e.target.result);
         if (!data.version) throw new Error('Invalid backup file');
         if (data.profiles) BBMV.utils.lsSet('bbmv_profiles', data.profiles);
-        if (data.sessions) BBMV.utils.lsSet('bbmv_sessions', data.sessions);
+        if (data.sessions) BBMV.utils.lsSet('bbmv_sessions', data.sessions.filter(isValidSession));
         if (data.badges) BBMV.utils.lsSet('bbmv_badges', data.badges);
         if (data.streak) BBMV.utils.lsSet('bbmv_streak', data.streak);
         if (data.settings) BBMV.utils.lsSet('bbmv_settings', data.settings);

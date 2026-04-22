@@ -52,20 +52,49 @@ self.addEventListener('fetch', (e) => {
   // Bỏ qua chrome-extension
   if (e.request.url.startsWith('chrome-extension')) return;
 
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(response => {
-        if (!response || response.status !== 200 || response.type === 'opaque') return response;
-        const toCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(e.request, toCache));
-        return response;
-      }).catch(() => {
-        // Offline fallback
-        if (e.request.destination === 'document') {
-          return caches.match('./index.html');
+  const url = new URL(e.request.url);
+  const isSameOrigin = url.origin === self.location.origin;
+  const isDocument = e.request.mode === 'navigate' || e.request.destination === 'document';
+
+  // Trang HTML: network-first để giảm nguy cơ giữ UI cũ quá lâu
+  if (isDocument) {
+    e.respondWith(
+      fetch(e.request).then(response => {
+        if (response && response.status === 200) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, copy));
         }
-      });
-    })
+        return response;
+      }).catch(() => caches.match(e.request).then(cached => cached || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Static cùng origin: stale-while-revalidate
+  if (isSameOrigin) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        const networkFetch = fetch(e.request).then(response => {
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(e.request, copy));
+          }
+          return response;
+        });
+        return cached || networkFetch;
+      })
+    );
+    return;
+  }
+
+  // Cross-origin (fonts/CDN): network-first, fallback cache
+  e.respondWith(
+    fetch(e.request).then(response => {
+      if (response && response.status === 200) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(e.request, copy));
+      }
+      return response;
+    }).catch(() => caches.match(e.request))
   );
 });
