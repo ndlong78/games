@@ -3,19 +3,19 @@
 // ============================================================
 
 BBMV.audio = (() => {
-  let ctx = null;          // AudioContext
-  let masterGain = null;   // Gain tổng
-  let musicGain = null;    // Gain nhạc nền
-  let sfxGain = null;      // Gain hiệu ứng
+  let ctx = null;
+  let masterGain = null;
+  let musicGain = null;
+  let sfxGain = null;
   let musicInterval = null;
   let speechQueue = [];
   let speechBusy = false;
 
-  // Khởi tạo AudioContext (cần user gesture trên iOS)
   const init = () => {
-    if (ctx) return;
+    if (ctx) return ctx;
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
       ctx = new AC();
       masterGain = ctx.createGain(); masterGain.gain.value = 1;
       musicGain = ctx.createGain(); musicGain.gain.value = 0.25;
@@ -23,19 +23,29 @@ BBMV.audio = (() => {
       musicGain.connect(masterGain);
       sfxGain.connect(masterGain);
       masterGain.connect(ctx.destination);
+      return ctx;
     } catch(e) {
       console.error('[BBMV] AudioContext init failed:', e);
+      return null;
     }
   };
 
-  // Resume context (iOS yêu cầu resume sau user gesture)
-  const resume = () => {
-    if (ctx && ctx.state === 'suspended') ctx.resume();
+  const resume = async () => {
+    const audioCtx = init();
+    if (!audioCtx) return false;
+    try {
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      return audioCtx.state === 'running';
+    } catch (e) {
+      console.warn('[BBMV] AudioContext resume blocked:', e?.message || e);
+      return false;
+    }
   };
 
-  // ── Tạo âm thanh đơn giản bằng oscillator ──
+  const isReady = () => !!ctx && ctx.state === 'running' && !!sfxGain;
+
   const playTone = (freq, type, duration, gainVal, delay = 0) => {
-    if (!ctx) return;
+    if (!isReady()) return;
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
     osc.connect(g); g.connect(sfxGain);
@@ -48,44 +58,34 @@ BBMV.audio = (() => {
     osc.stop(ctx.currentTime + delay + duration + 0.05);
   };
 
-  // ── Sound Effects ──
   const sfx = {
-    // Âm vui khi bắt bướm thành công
     catch: () => {
-      if (!ctx) return;
+      if (!isReady()) return;
       [523, 659, 784, 1047].forEach((f, i) => playTone(f, 'sine', 0.2, 0.5, i * 0.07));
     },
-    // Âm nhẹ khi bướm bay mất
     miss: () => {
-      if (!ctx) return;
+      if (!isReady()) return;
       playTone(300, 'sine', 0.3, 0.3, 0);
       playTone(250, 'sine', 0.3, 0.3, 0.1);
     },
-    // Âm lấp lánh khi nhận sao
     star: () => {
-      if (!ctx) return;
-      const freqs = [880, 1108, 1318, 1760, 2093];
-      freqs.forEach((f, i) => playTone(f, 'sine', 0.15, 0.4, i * 0.06));
+      if (!isReady()) return;
+      [880, 1108, 1318, 1760, 2093].forEach((f, i) => playTone(f, 'sine', 0.15, 0.4, i * 0.06));
     },
-    // Jingle lên level
     levelup: () => {
-      if (!ctx) return;
-      const seq = [523, 659, 784, 1047, 1319];
-      seq.forEach((f, i) => playTone(f, 'triangle', 0.25, 0.5, i * 0.1));
+      if (!isReady()) return;
+      [523, 659, 784, 1047, 1319].forEach((f, i) => playTone(f, 'triangle', 0.25, 0.5, i * 0.1));
     },
-    // Click nút
     button: () => {
-      if (!ctx) return;
+      if (!isReady()) return;
       playTone(800, 'sine', 0.1, 0.3, 0);
     },
-    // Chuỗi ngày (streak)
     streak: () => {
-      if (!ctx) return;
+      if (!isReady()) return;
       [440, 550, 660, 880, 1100].forEach((f, i) => playTone(f, 'triangle', 0.2, 0.45, i * 0.08));
     }
   };
 
-  // ── Nhạc nền procedural (giai điệu nhẹ nhàng) ──
   const MELODY = [
     [523, 0.5], [659, 0.5], [784, 0.5], [880, 0.5],
     [784, 0.5], [659, 0.5], [523, 1.0],
@@ -98,11 +98,10 @@ BBMV.audio = (() => {
   ];
 
   let melodyIdx = 0;
-  let melodyTime = 0;
   let musicPlaying = false;
 
   const playMusicNote = () => {
-    if (!ctx || !musicPlaying) return;
+    if (!isReady() || !musicPlaying) return;
     const [freq, dur] = MELODY[melodyIdx % MELODY.length];
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
@@ -116,13 +115,13 @@ BBMV.audio = (() => {
     g.gain.linearRampToValueAtTime(0, t + dur);
     osc.start(t);
     osc.stop(t + dur + 0.05);
-    melodyIdx++;
-    if (melodyIdx % MELODY.length === 0) melodyIdx = 0;
+    melodyIdx = (melodyIdx + 1) % MELODY.length;
     musicInterval = setTimeout(playMusicNote, dur * 1000);
   };
 
-  const startMusic = () => {
-    if (musicPlaying) return;
+  const startMusic = async () => {
+    const ok = await resume();
+    if (!ok || musicPlaying) return;
     musicPlaying = true;
     melodyIdx = 0;
     playMusicNote();
@@ -141,7 +140,6 @@ BBMV.audio = (() => {
     if (sfxGain) sfxGain.gain.value = v;
   };
 
-  // ── Web Speech API — Giọng nói tiếng Việt ──
   const speak = (text, priority = false) => {
     if (!window.speechSynthesis) return;
     const settings = BBMV.utils.lsGet('bbmv_settings', {});
@@ -162,7 +160,6 @@ BBMV.audio = (() => {
     const text = speechQueue.shift();
     const utt = new SpeechSynthesisUtterance(text);
 
-    // Tìm voice tiếng Việt
     const voices = window.speechSynthesis.getVoices();
     const viVoice = voices.find(v => v.lang === 'vi-VN') ||
                     voices.find(v => v.lang.startsWith('vi')) ||
@@ -183,7 +180,6 @@ BBMV.audio = (() => {
       _speakNext();
     };
 
-    // iOS Safari workaround: phải set rate sau khi assign voice
     try {
       window.speechSynthesis.speak(utt);
     } catch(e) {
@@ -197,7 +193,6 @@ BBMV.audio = (() => {
     if (window.speechSynthesis) window.speechSynthesis.cancel();
   };
 
-  // Preload voices (iOS cần gọi getVoices sớm)
   const preloadVoices = () => {
     if (window.speechSynthesis) {
       window.speechSynthesis.getVoices();
@@ -208,6 +203,6 @@ BBMV.audio = (() => {
   return {
     init, resume, sfx,
     startMusic, stopMusic, setMusicVol, setSfxVol,
-    speak, stopSpeech, preloadVoices
+    speak, stopSpeech, preloadVoices, isReady
   };
 })();
