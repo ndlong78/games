@@ -1,7 +1,7 @@
 # 🦋 Bướm Bay Mắt Vui
 
 > Ứng dụng game hỗ trợ tập luyện nhược thị cho trẻ em 4–7 tuổi  
-> Chạy hoàn toàn trên trình duyệt — Không cần cài đặt, hoạt động offline
+> Chạy hoàn toàn trên trình duyệt — Không cần cài đặt, có hỗ trợ offline/PWA
 
 [![Deploy to GitHub Pages](https://img.shields.io/badge/Deploy-GitHub%20Pages-blue?style=flat-square&logo=github)](https://pages.github.com)
 
@@ -10,13 +10,15 @@
 ## ✨ Tính năng
 
 - 🦋 Game bắt bướm 4 cấp độ tăng dần độ khó
-- 📷 Kiểm tra che mắt qua webcam
+- 📷 Mở webcam để **phụ huynh xác nhận thủ công** việc che mắt trước khi chơi
 - 🔊 Giọng nói tiếng Việt + âm thanh vui nhộn
 - 👨‍👩‍👧 Quản lý nhiều hồ sơ trẻ em
 - 🏆 Huy hiệu, streak ngày, nhân vật unlock
 - 📊 Báo cáo tiến bộ + xuất PDF cho bác sĩ
 - 📱 PWA — cài được về màn hình chính iPhone/iPad
-- 🌐 Hoạt động offline sau lần đầu tải
+- 🌐 Core app hoạt động offline sau lần đầu tải; biểu đồ/PDF được cache để cải thiện trải nghiệm offline
+
+> Lưu ý: phiên bản hiện tại **chưa có AI/computer vision tự động phát hiện che mắt**. Trạng thái che mắt được ghi nhận theo xác nhận thủ công hoặc bỏ qua.
 
 ---
 
@@ -44,7 +46,7 @@ npx serve .
 
 ## 📦 Cấu trúc project
 
-```
+```text
 buom-bay-mat-vui/
 ├── index.html          # Entry point
 ├── manifest.json       # PWA manifest
@@ -58,7 +60,7 @@ buom-bay-mat-vui/
 │   ├── background.js   # Nền động canvas
 │   ├── butterfly.js    # Class Butterfly
 │   ├── game.js         # Game loop chính
-│   ├── camera.js       # Kiểm tra che mắt
+│   ├── camera.js       # Webcam + xác nhận thủ công che mắt
 │   ├── profile.js      # Quản lý hồ sơ trẻ
 │   ├── gamification.js # Huy hiệu, streak
 │   ├── settings.js     # Cài đặt app
@@ -80,6 +82,8 @@ Xem hướng dẫn chi tiết bên dưới.
 
 Mật khẩu xem báo cáo: **1234** (có thể đổi trong Cài đặt)
 
+> Đây là cơ chế khóa nhẹ ở phía client để hạn chế trẻ mở nhầm báo cáo, **không phải** cơ chế bảo mật mạnh cho dữ liệu nhạy cảm.
+
 ---
 
 ## 📱 Cài app về iPhone/iPad
@@ -98,9 +102,19 @@ Mật khẩu xem báo cáo: **1234** (có thể đổi trong Cài đặt)
 - Web Speech API — giọng nói tiếng Việt
 - MediaDevices API — webcam
 - Service Worker — offline PWA
-- Chart.js (lazy-load) — biểu đồ báo cáo
-- jsPDF (lazy-load) — xuất PDF
+- Chart.js — biểu đồ báo cáo
+- jsPDF — xuất PDF
 - localStorage — lưu dữ liệu local
+
+---
+
+## ✅ Các cải tiến gần đây
+
+- Sửa logic chấm sao để phản ánh cả số bướm bắt được, bướm bỏ lỡ và độ chính xác theo dõi
+- Ghi nhận rõ trạng thái che mắt: `confirmed`, `skipped`, `camera_error`, `pending`
+- Bổ sung `speedRecord` để badge tốc độ hoạt động thật
+- Harden backup/restore và render lịch sử để giảm rủi ro dữ liệu lỗi hoặc chèn nội dung không an toàn
+- Cải thiện cache offline cho Chart.js và jsPDF
 
 ---
 
