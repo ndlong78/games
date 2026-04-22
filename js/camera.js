@@ -12,7 +12,6 @@ BBMV.camera = (() => {
     BBMV.game._lastEyeCoverAIResult = result || (confirmed ? 'confirmed' : 'unknown');
   };
 
-  // ── Mở webcam ──
   const start = async () => {
     const video = BBMV.utils.$('camera-video');
     const previewWrap = BBMV.utils.$('camera-preview-wrap');
@@ -57,7 +56,6 @@ BBMV.camera = (() => {
     }
   };
 
-  // ── Khởi tạo màn hình camera ──
   const initScreen = (profile) => {
     if (!profile) return;
     const eyeLabel = { left: 'mắt trái', right: 'mắt phải', both: 'hai mắt' };
@@ -65,14 +63,12 @@ BBMV.camera = (() => {
 
     setEyeCoverState(false, 'pending');
 
-    // Cập nhật hướng dẫn
     const stepText = BBMV.utils.$('camera-step-text');
     if (stepText) {
       stepText.textContent = `Con hãy che ${which} bằng miếng dán nhé! 🩹`;
       stepText.style.color = '';
     }
 
-    // Minh họa che mắt
     const eyeCovered = BBMV.utils.$('illus-eye-covered');
     const eyeOpen = BBMV.utils.$('illus-eye-open');
     if (eyeCovered && eyeOpen) {
@@ -92,7 +88,6 @@ BBMV.camera = (() => {
     start();
   };
 
-  // ── Xác nhận che mắt bởi phụ huynh ──
   const confirm = () => {
     stop();
     setEyeCoverState(true, 'confirmed');
@@ -101,11 +96,10 @@ BBMV.camera = (() => {
     BBMV.utils.showToast('✅ Tuyệt vời! Bắt đầu chơi!');
     setTimeout(() => {
       BBMV.utils.showScreen('screen-game');
-      BBMV.game.startGame(1, 1);
+      BBMV.game.startGame(1, 1, { eyeCoverConfirmed: true, eyeCoverAIResult: 'confirmed' });
     }, 1200);
   };
 
-  // ── Bỏ qua (cần double-tap) ──
   const skip = () => {
     skipTapCount++;
     clearTimeout(skipTapTimer);
@@ -114,14 +108,13 @@ BBMV.camera = (() => {
       stop();
       setEyeCoverState(false, 'skipped');
       BBMV.utils.showScreen('screen-game');
-      BBMV.game.startGame(1, 1);
+      BBMV.game.startGame(1, 1, { eyeCoverConfirmed: false, eyeCoverAIResult: 'skipped' });
     } else {
       BBMV.utils.showToast('Nhấn thêm 1 lần nữa để bỏ qua');
       skipTapTimer = setTimeout(() => { skipTapCount = 0; }, 3000);
     }
   };
 
-  // ── Bind events ──
   const bindEvents = () => {
     BBMV.utils.$('btn-confirm-camera')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
