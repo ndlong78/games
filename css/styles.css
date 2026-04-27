@@ -24,7 +24,7 @@ html, body {
   top: calc(var(--safe-top) + 8px);
   left: calc(var(--safe-left) + 8px);
   right: calc(var(--safe-right) + 8px);
-  display: flex;
+  display: none;
   gap: 8px;
   justify-content: space-between;
   font-size: clamp(20px, 5vw, 30px);

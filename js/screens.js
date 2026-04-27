@@ -35,7 +35,7 @@ window.FFV_SCREENS = (() => {
       `Số quả đã cắt: <b>${result.fruitsSliced}</b>`,
       `Số quả bỏ lỡ: <b>${result.fruitsMissed}</b>`,
       `Combo cao nhất: <b>${result.maxCombo}</b>`,
-      `Thời lượng phiên chơi: <b>${result.durationSeconds}s (2 phút)</b>`,
+      `Thời lượng: <b>2 phút</b>`,
       `Mức khó cuối: <b>Giai đoạn ${result.finalDifficultyStage}/4</b>`
     ].map((row) => `<div>${row}</div>`).join('');
   }
