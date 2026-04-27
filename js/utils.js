@@ -6,8 +6,23 @@ const BBMV = window.BBMV || {};
 
 BBMV.utils = {
   _lastScreenId: null,
+  _lastScreenName: null,
   _transitioning: false,
   _transitionSince: 0,
+  _screenNameToId: {
+    loading: 'screen-loading',
+    profile: 'screen-profiles',
+    profiles: 'screen-profiles',
+    menu: 'screen-menu',
+    patch: 'screen-camera',
+    camera: 'screen-camera',
+    game: 'screen-game',
+    complete: 'screen-complete',
+    badges: 'screen-badges',
+    report: 'screen-report',
+    reports: 'screen-report',
+    settings: 'screen-settings'
+  },
 
   $: (id) => document.getElementById(id),
   lerp: (a, b, t) => a + (b - a) * t,
@@ -117,10 +132,26 @@ BBMV.utils = {
     BBMV.utils._transitionSince = value ? Date.now() : 0;
   },
 
-  showScreen: (id) => {
-    const target = BBMV.utils.$(id);
+  resolveScreenTarget: (nameOrId) => {
+    const raw = String(nameOrId || '').trim();
+    const normalized = raw.replace(/^screen-/, '').toLowerCase();
+    const mappedId = BBMV.utils._screenNameToId[normalized] || (raw.startsWith('screen-') ? raw : `screen-${normalized}`);
+    const target = BBMV.utils.$(mappedId)
+      || document.querySelector(`.screen[data-screen="${normalized}"]`)
+      || document.querySelector(`.screen[data-screen="${raw.toLowerCase()}"]`);
+    const screenName = target?.dataset?.screen || normalized;
+    return { raw, normalized, mappedId, target, screenName };
+  },
+
+  showScreen: (nameOrId, options = {}) => {
+    const { fatalOnMissing = false } = options;
+    const { raw, mappedId, target, screenName } = BBMV.utils.resolveScreenTarget(nameOrId);
     if (!target) {
-      console.error(`[BBMV] showScreen: không tìm thấy màn hình "${id}"`);
+      const error = new Error(`Screen target not found for "${raw}" -> "${mappedId}"`);
+      console.error('[BBMV] showScreen target missing:', error.message);
+      if (fatalOnMissing && typeof BBMV.utils.showFatalError === 'function') {
+        BBMV.utils.showFatalError(`Không tìm thấy màn hình "${raw}" để hiển thị.`, error);
+      }
       return false;
     }
 
@@ -129,10 +160,22 @@ BBMV.utils = {
       document.querySelectorAll('.screen').forEach((s) => {
         s.classList.remove('active', 'slide-in');
         s.setAttribute('aria-hidden', 'true');
+        if (typeof s.setAttribute === 'function') s.setAttribute('hidden', '');
       });
+
+      if (typeof target.removeAttribute === 'function') target.removeAttribute('hidden');
+      if (target.classList?.remove) target.classList.remove('hidden');
+      if (target.style?.removeProperty) target.style.removeProperty('display');
       target.classList.add('active');
       target.setAttribute('aria-hidden', 'false');
-      BBMV.utils._lastScreenId = id;
+      BBMV.utils._lastScreenId = target.id || mappedId;
+      BBMV.utils._lastScreenName = screenName;
+      if (document.body?.classList) {
+        Array.from(document.body.classList).forEach((cls) => {
+          if (cls.startsWith('screen-')) document.body.classList.remove(cls);
+        });
+        document.body.classList.add(`screen-${screenName}`);
+      }
 
       requestAnimationFrame(() => {
         target.classList.add('slide-in');
@@ -144,6 +187,36 @@ BBMV.utils = {
         if (!target.classList.contains('active')) target.classList.add('active');
         BBMV.utils.setTransitioning(false);
       }, 900);
+
+      const getComputed = typeof window.getComputedStyle === 'function'
+        ? window.getComputedStyle.bind(window)
+        : () => ({ display: 'unknown', visibility: 'unknown', opacity: 'unknown' });
+      const screenComputed = getComputed(target);
+      const appComputed = getComputed(BBMV.utils.$('app') || document.body);
+      const bodyComputed = getComputed(document.body);
+      console.log(
+        '[BBMV] showScreen',
+        screenName,
+        'found',
+        !!target,
+        'display',
+        screenComputed.display,
+        'visibility',
+        screenComputed.visibility,
+        'opacity',
+        screenComputed.opacity,
+        'size',
+        `${target.offsetWidth}x${target.offsetHeight}`
+      );
+      if (
+        appComputed.display === 'none' || appComputed.visibility === 'hidden' || appComputed.opacity === '0' ||
+        bodyComputed.display === 'none' || bodyComputed.visibility === 'hidden' || bodyComputed.opacity === '0'
+      ) {
+        console.warn('[BBMV] showScreen root visibility warning:', {
+          app: { display: appComputed.display, visibility: appComputed.visibility, opacity: appComputed.opacity },
+          body: { display: bodyComputed.display, visibility: bodyComputed.visibility, opacity: bodyComputed.opacity }
+        });
+      }
       return true;
     } catch (err) {
       BBMV.utils.setTransitioning(false);
@@ -161,10 +234,10 @@ BBMV.utils = {
     }
     const active = document.querySelector('.screen.active');
     if (active) return true;
-    const fallbackId = BBMV.utils._lastScreenId || 'screen-profiles';
-    const ok = BBMV.utils.showScreen(fallbackId);
-    if (!ok && fallbackId !== 'screen-profiles') BBMV.utils.showScreen('screen-profiles');
-    console.warn('[BBMV] Recovered from blank screen, restored:', fallbackId);
+    const fallbackScreen = BBMV.utils._lastScreenName || BBMV.utils._lastScreenId || 'profile';
+    const ok = BBMV.utils.showScreen(fallbackScreen, { fatalOnMissing: false });
+    if (!ok && fallbackScreen !== 'profile') BBMV.utils.showScreen('profile', { fatalOnMissing: false });
+    console.warn('[BBMV] Recovered from blank screen, restored:', fallbackScreen);
     return false;
   },
 
@@ -265,7 +338,7 @@ BBMV.utils = {
     BBMV.utils._lastScreenId = 'screen-fatal-error';
 
     fatal.querySelector('#btn-fatal-back-profiles')?.addEventListener('pointerdown', () => {
-      const ok = BBMV.utils.showScreen('screen-profiles');
+      const ok = BBMV.utils.showScreen('profile');
       if (!ok) BBMV.utils.showFallbackScreen('fatal-back-profiles');
     });
     fatal.querySelector('#btn-fatal-reload')?.addEventListener('pointerdown', () => location.reload());

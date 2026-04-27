@@ -95,7 +95,7 @@ BBMV.camera = (() => {
     BBMV.audio.speak('Tuyệt vời! Con che mắt đúng rồi! Bắt đầu chơi thôi!', true);
     BBMV.utils.showToast('✅ Tuyệt vời! Bắt đầu chơi!');
     setTimeout(() => {
-      BBMV.utils.showScreen('screen-game');
+      BBMV.utils.showScreen('game');
       BBMV.game.startGame(1, 1, { eyeCoverConfirmed: true, eyeCoverAIResult: 'confirmed' });
     }, 1200);
   };
@@ -107,7 +107,7 @@ BBMV.camera = (() => {
       skipTapCount = 0;
       stop();
       setEyeCoverState(false, 'skipped');
-      BBMV.utils.showScreen('screen-game');
+      BBMV.utils.showScreen('game');
       BBMV.game.startGame(1, 1, { eyeCoverConfirmed: false, eyeCoverAIResult: 'skipped' });
     } else {
       BBMV.utils.showToast('Nhấn thêm 1 lần nữa để bỏ qua');

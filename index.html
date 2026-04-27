@@ -25,7 +25,7 @@
 </head>
 <body>
   <div id="app">
-    <div id="screen-loading" class="screen active">
+    <div id="screen-loading" class="screen active" data-screen="loading">
       <div class="loading-content">
         <div class="loading-butterfly">🦋</div>
         <h1 class="loading-title">Bướm Bay Mắt Vui</h1>
@@ -34,7 +34,7 @@
       </div>
     </div>
 
-    <div id="screen-profiles" class="screen">
+    <div id="screen-profiles" class="screen" data-screen="profile">
       <div class="screen-header">
         <h2 class="screen-title">Chọn hồ sơ của bé</h2>
         <button class="btn-icon" id="btn-settings" title="Cài đặt">⚙️</button>
@@ -80,7 +80,7 @@
       </div>
     </div>
 
-    <div id="screen-menu" class="screen">
+    <div id="screen-menu" class="screen" data-screen="menu">
       <div class="menu-bg-canvas-wrap"><canvas id="menu-canvas"></canvas></div>
       <div class="menu-ui">
         <div class="menu-top">
@@ -93,7 +93,7 @@
       </div>
     </div>
 
-    <div id="screen-camera" class="screen">
+    <div id="screen-camera" class="screen" data-screen="patch">
       <div class="camera-container">
         <div class="camera-header"><h2 class="camera-title">Kiểm tra che mắt</h2></div>
         <div class="camera-body">
@@ -105,29 +105,29 @@
       </div>
     </div>
 
-    <div id="screen-game" class="screen">
+    <div id="screen-game" class="screen" data-screen="game">
       <canvas id="game-canvas"></canvas>
       <div class="game-hud" id="game-hud"><div class="hud-left"><div class="hud-stars" id="hud-stars">⭐ 0</div><div class="hud-wave" id="hud-wave">Màn 1</div></div><div class="hud-center"><div class="hud-progress-bar"><div class="hud-progress-fill" id="hud-progress"></div></div></div><div class="hud-right"><div class="hud-timer" id="hud-timer">⏱ 0s</div><button class="btn-pause" id="btn-pause">⏸</button></div></div>
       <div class="combo-text hidden" id="combo-text">🎉 Tuyệt vời!</div>
       <div class="pause-overlay hidden" id="pause-overlay"><div class="pause-box"><h3>⏸ Tạm dừng</h3><button class="btn-primary" id="btn-resume">▶️ Tiếp tục</button><button class="btn-secondary" id="btn-restart">🔄 Chơi lại</button><button class="btn-secondary" id="btn-to-menu">🏠 Về menu</button></div></div>
     </div>
 
-    <div id="screen-complete" class="screen">
+    <div id="screen-complete" class="screen" data-screen="complete">
       <div class="complete-container"><div class="complete-stars" id="complete-stars"></div><h2 class="complete-title" id="complete-title">Hoàn thành!</h2><div class="complete-stats" id="complete-stats"></div><div class="new-badge" id="new-badge" style="display:none"></div><div class="complete-actions"><button class="btn-primary" id="btn-next-level">Màn tiếp theo ▶️</button><button class="btn-secondary" id="btn-replay">🔄 Chơi lại</button><button class="btn-secondary" id="btn-complete-menu">🏠 Về menu</button></div></div>
     </div>
 
-    <div id="screen-badges" class="screen">
+    <div id="screen-badges" class="screen" data-screen="badges">
       <div class="screen-header"><button class="btn-back" id="btn-badges-back">← Quay lại</button><h2 class="screen-title">🏆 Huy hiệu của bé</h2></div>
       <div class="badges-grid" id="badges-grid"></div>
     </div>
 
-    <div id="screen-report" class="screen">
+    <div id="screen-report" class="screen" data-screen="reports">
       <div class="screen-header"><button class="btn-back" id="btn-report-back">← Quay lại</button><h2 class="screen-title">👨‍⚕️ Báo cáo tiến bộ</h2></div>
       <div id="report-locked" class="report-locked"><div class="lock-icon">🔒</div><p>Nhập mật khẩu phụ huynh</p><div class="pin-display" id="pin-display"><span class="pin-dot" id="d0"></span><span class="pin-dot" id="d1"></span><span class="pin-dot" id="d2"></span><span class="pin-dot" id="d3"></span></div><div class="pin-pad" id="pin-pad"></div></div>
       <div id="report-content" class="hidden"><div class="report-tabs" id="report-tabs"><button class="tab-btn active" data-tab="overview">Tổng quan</button><button class="tab-btn" data-tab="chart7">7 ngày</button><button class="tab-btn" data-tab="chart30">30 ngày</button><button class="tab-btn" data-tab="compliance">Che mắt</button><button class="tab-btn" data-tab="history">Lịch sử</button></div><div class="report-body" id="report-body"></div><div class="report-actions"><button class="btn-primary" id="btn-export-pdf">📥 Xuất PDF</button><button class="btn-secondary" id="btn-backup">💾 Sao lưu</button><button class="btn-secondary" id="btn-restore">📂 Nhập lại</button><input type="file" id="input-restore" accept=".json" style="display:none" /></div></div>
     </div>
 
-    <div id="screen-settings" class="screen"><div class="screen-header"><button class="btn-back" id="btn-settings-back">← Quay lại</button><h2 class="screen-title">⚙️ Cài đặt</h2></div><div class="settings-body" id="settings-body"></div></div>
+    <div id="screen-settings" class="screen" data-screen="settings"><div class="screen-header"><button class="btn-back" id="btn-settings-back">← Quay lại</button><h2 class="screen-title">⚙️ Cài đặt</h2></div><div class="settings-body" id="settings-body"></div></div>
 
     <div id="toast" class="toast hidden"></div>
     <div id="install-banner" class="install-banner hidden"><span>📱 Cài app về máy để dùng offline!</span><button id="btn-install">Cài ngay</button><button id="btn-install-dismiss">✕</button></div>

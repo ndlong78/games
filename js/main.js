@@ -66,7 +66,7 @@ const runStep = (name, fn, options = {}) => {
 const loadProfilesSafely = () => {
   try {
     BBMV.profile.renderProfilesScreen();
-    const shown = BBMV.utils.showScreen('screen-profiles');
+    const shown = BBMV.utils.showScreen('profile');
     if (!shown) throw new Error('Unable to show screen-profiles');
     const restored = BBMV.profile.restoreActiveProfile?.();
     console.log('[BBMV] Active profile key:', BBMV.profile.getActiveProfileKey?.(), 'restored:', restored || 'none');
@@ -83,7 +83,7 @@ const loadProfilesSafely = () => {
     BBMV.utils.showToast('Dữ liệu hồ sơ bị lỗi, đã reset về mặc định.');
     try {
       BBMV.profile.renderProfilesScreen();
-      BBMV.utils.showScreen('screen-profiles');
+      BBMV.utils.showScreen('profile');
     } catch (retryErr) {
       console.error('[BBMV] Profile recovery failed:', retryErr);
       BBMV.utils.showFallbackScreen('profile-recovery');
@@ -104,7 +104,7 @@ const initApp = () => {
     if (txt) txt.textContent = msg;
   };
 
-  BBMV.utils.showScreen('screen-loading');
+  BBMV.utils.showScreen('loading');
   setProgress(10, 'Đang tải font chữ...');
 
   runStep('audio.preloadVoices', () => BBMV.audio.preloadVoices());
@@ -143,7 +143,7 @@ const bindAllEvents = () => {
       BBMV.utils.showToast('Vui lòng chọn hồ sơ trước!');
       return;
     }
-    BBMV.utils.showScreen('screen-camera');
+    BBMV.utils.showScreen('patch');
     BBMV.camera.initScreen(profile);
   });
 

@@ -280,7 +280,7 @@ BBMV.game = (() => {
     BBMV.audio.sfx.levelup();
     const msgs = ['Chúc mừng con!', 'Con giỏi lắm!', 'Tuyệt vời!'];
     BBMV.audio.speak(`${msgs[stars-1]} Màn này được ${stars} sao!`, true);
-    BBMV.utils.showScreen('screen-complete');
+    BBMV.utils.showScreen('complete');
   };
 
   const renderComplete = (stars, caught, total, acc, dur, newBadges, missed = 0, successRate = 0) => {
@@ -310,7 +310,7 @@ BBMV.game = (() => {
       const nextLevel = stars === 3 ? Math.min(level + 1, 4) : level;
       btnNext.onclick = () => {
         BBMV.audio.sfx.button();
-        BBMV.utils.showScreen('screen-game');
+        BBMV.utils.showScreen('game');
         startGame(nextLevel, 1, { eyeCoverConfirmed: false, eyeCoverAIResult: 'unknown' });
       };
     }
@@ -377,18 +377,18 @@ BBMV.game = (() => {
     BBMV.utils.$('btn-to-menu')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
       stopGame();
-      BBMV.utils.showScreen('screen-menu');
+      BBMV.utils.showScreen('menu');
     });
     BBMV.utils.$('btn-replay')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
-      BBMV.utils.showScreen('screen-game');
+      BBMV.utils.showScreen('game');
       startGame(level, wave, { eyeCoverConfirmed: false, eyeCoverAIResult: 'unknown' });
     });
     BBMV.utils.$('btn-complete-menu')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
       stopGame();
       BBMV.profile.renderMenuScreen();
-      BBMV.utils.showScreen('screen-menu');
+      BBMV.utils.showScreen('menu');
     });
   };
 

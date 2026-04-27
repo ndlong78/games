@@ -484,11 +484,11 @@ BBMV.report = (() => {
       initPinPad();
       tabsBound = false;
       document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
-      BBMV.utils.showScreen('screen-report');
+      BBMV.utils.showScreen('reports');
     });
     BBMV.utils.$('btn-report-back')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
-      BBMV.utils.showScreen('screen-menu');
+      BBMV.utils.showScreen('menu');
     });
     BBMV.utils.$('btn-export-pdf')?.addEventListener('pointerdown', () => { BBMV.audio.sfx.button(); exportPDF(); });
     BBMV.utils.$('btn-backup')?.addEventListener('pointerdown', () => { BBMV.audio.sfx.button(); backup(); });
