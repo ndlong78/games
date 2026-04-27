@@ -2,7 +2,7 @@
 // sw.js — Service Worker: cache-first cho offline support
 // ============================================================
 
-const CACHE_VERSION = '2026.04.27-2';
+const CACHE_VERSION = '2026.04.27-3';
 const CACHE_NAME = `bbmv-cache-${CACHE_VERSION}`;
 const ASSETS = [
   './',

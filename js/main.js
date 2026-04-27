@@ -63,31 +63,19 @@ const runStep = (name, fn, options = {}) => {
   }
 };
 
-const loadProfilesSafely = () => {
+const bootstrapDefaultProfileAndMenu = () => {
   try {
-    BBMV.profile.renderProfilesScreen();
-    const shown = BBMV.utils.showScreen('profile');
-    if (!shown) throw new Error('Unable to show screen-profile');
-    const restored = BBMV.profile.restoreActiveProfile?.();
-    console.log('[BBMV] Active profile key:', BBMV.profile.getActiveProfileKey?.(), 'restored:', restored || 'none');
-    const profiles = BBMV.profile.getAll();
-    console.log(`[BBMV] Profile loaded: ${profiles.length}`);
-    if (profiles.length > 0) {
-      setTimeout(() => {
-        BBMV.audio.speak('Chào con! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!');
-      }, 500);
-    }
+    const profile = BBMV.profile.ensureDefaultProfile();
+    const shown = BBMV.utils.showScreen('menu');
+    if (!shown) throw new Error('Unable to show screen-menu');
+    const rendered = BBMV.profile.renderMenuScreen();
+    if (!rendered) throw new Error('Unable to render menu screen');
+    setTimeout(() => {
+      BBMV.audio.speak(`Chào ${profile?.name || 'bé'}! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!`);
+    }, 400);
   } catch (err) {
-    console.error('[BBMV] loadProfilesSafely failed, reset profile data:', err);
-    BBMV.utils.lsSet('bbmv_profiles', []);
-    BBMV.utils.showToast('Dữ liệu hồ sơ bị lỗi, đã reset về mặc định.');
-    try {
-      BBMV.profile.renderProfilesScreen();
-      BBMV.utils.showScreen('profile');
-    } catch (retryErr) {
-      console.error('[BBMV] Profile recovery failed:', retryErr);
-      BBMV.utils.showFallbackScreen('profile-recovery');
-    }
+    console.error('[BBMV] bootstrapDefaultProfileAndMenu failed:', err);
+    BBMV.utils.showFallbackScreen('default-profile-bootstrap');
   }
 };
 
@@ -124,8 +112,8 @@ const initApp = () => {
   setProgress(100, 'Sẵn sàng!');
 
   setTimeout(() => {
-    loadProfilesSafely();
-  }, 1200);
+    bootstrapDefaultProfileAndMenu();
+  }, 600);
 };
 
 const bindAllEvents = () => {
@@ -138,9 +126,9 @@ const bindAllEvents = () => {
 
   BBMV.utils.$('btn-play')?.addEventListener('pointerdown', () => {
     BBMV.audio.sfx.button();
-    const profile = BBMV.profile.getCurrent();
+    const profile = BBMV.profile.getCurrent() || BBMV.profile.ensureDefaultProfile();
     if (!profile) {
-      BBMV.utils.showToast('Vui lòng chọn hồ sơ trước!');
+      BBMV.utils.showToast('Không thể khởi tạo hồ sơ mặc định!');
       return;
     }
     BBMV.utils.showScreen('patch');
