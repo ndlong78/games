@@ -160,13 +160,13 @@ BBMV.profile = (() => {
       if (!selectedId) throw new Error(`Failed to set active profile: ${profile.id}`);
       console.log('[BBMV] profile.select activeProfile saved', selectedId);
 
+      const shown = BBMV.utils.showScreen('menu', { fatalOnMissing: true });
+      if (!shown) throw new Error('showScreen(menu) failed');
+      console.log('[BBMV] profile.select screen changed', 'menu');
+
       const rendered = renderMenuScreen();
       if (!rendered) throw new Error('renderMenuScreen() failed');
       console.log('[BBMV] profile.select menu/home rendered');
-
-      const shown = BBMV.utils.showScreen('screen-menu');
-      if (!shown) throw new Error('showScreen(screen-menu) failed');
-      console.log('[BBMV] profile.select screen changed', 'screen-menu');
 
       BBMV.audio.speak(`Chào ${profile.name}! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!`, true);
       return true;
@@ -404,7 +404,7 @@ BBMV.profile = (() => {
     BBMV.utils.$('btn-switch-profile')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
       clearActiveProfile();
-      BBMV.utils.showScreen('screen-profiles');
+      BBMV.utils.showScreen('profile');
       renderProfilesScreen();
     });
     BBMV.utils.$('modal-profile')?.addEventListener('pointerdown', (e) => {

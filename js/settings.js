@@ -173,7 +173,7 @@ BBMV.settings = (() => {
       BBMV.utils.confirm('⚠️ Xóa toàn bộ dữ liệu? Hành động này không thể hoàn tác!', () => {
         BBMV.utils.lsClearByPrefix('bbmv_');
         BBMV.utils.showToast('Đã xóa toàn bộ dữ liệu');
-        BBMV.utils.showScreen('screen-profiles');
+        BBMV.utils.showScreen('profile');
         BBMV.profile.renderProfilesScreen();
       });
     });
@@ -195,11 +195,11 @@ BBMV.settings = (() => {
     BBMV.utils.$('btn-settings')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
       render();
-      BBMV.utils.showScreen('screen-settings');
+      BBMV.utils.showScreen('settings');
     });
     BBMV.utils.$('btn-settings-back')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
-      BBMV.utils.showScreen('screen-profiles');
+      BBMV.utils.showScreen('profile');
     });
   };
 

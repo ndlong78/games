@@ -201,11 +201,11 @@ BBMV.gamification = (() => {
       BBMV.audio.sfx.button();
       const p = BBMV.profile.getCurrent();
       if (p) renderBadgesScreen(p.id);
-      BBMV.utils.showScreen('screen-badges');
+      BBMV.utils.showScreen('badges');
     });
     BBMV.utils.$('btn-badges-back')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
-      BBMV.utils.showScreen('screen-menu');
+      BBMV.utils.showScreen('menu');
     });
   };
 
