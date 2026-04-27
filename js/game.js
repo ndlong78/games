@@ -387,7 +387,6 @@ BBMV.game = (() => {
     BBMV.utils.$('btn-complete-menu')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
       stopGame();
-      BBMV.profile.renderMenuScreen();
       BBMV.utils.showScreen('menu');
     });
   };
