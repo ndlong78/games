@@ -2,9 +2,12 @@ window.FFV_GAME = (() => {
   const cfg = window.FFV_CONFIG;
   const state = {
     running: false,
+    status: 'menu', // menu | playing | result
     score: 0,
     timeLeft: cfg.GAME.SESSION_SECONDS,
     elapsedSeconds: 0,
+    elapsedMs: 0,
+    remainingMs: cfg.GAME.SESSION_SECONDS * 1000,
     hearts: cfg.MAX_HEARTS,
     combo: 1,
     bestCombo: 1,
@@ -36,9 +39,12 @@ window.FFV_GAME = (() => {
 
   function start() {
     state.running = true;
+    state.status = 'playing';
     state.score = 0;
     state.timeLeft = cfg.GAME.SESSION_SECONDS;
     state.elapsedSeconds = 0;
+    state.elapsedMs = 0;
+    state.remainingMs = cfg.GAME.SESSION_SECONDS * 1000;
     state.hearts = cfg.MAX_HEARTS;
     state.combo = 1;
     state.bestCombo = 1;
@@ -54,7 +60,6 @@ window.FFV_GAME = (() => {
     lastSliceMs = 0;
     lastFrame = performance.now();
     window.FFV_INPUT.setEnabled(true);
-    // Đồng bộ HUD ngay khi bắt đầu để luôn hiển thị đúng 120s từ nguồn cấu hình duy nhất.
     window.FFV_SCREENS.updateHUD(state);
     cancelAnimationFrame(loopRef);
     loopRef = requestAnimationFrame(loop);
@@ -62,6 +67,7 @@ window.FFV_GAME = (() => {
 
   function stop() {
     state.running = false;
+    state.status = state.finished ? 'result' : 'menu';
     window.FFV_INPUT.setEnabled(false);
     cancelAnimationFrame(loopRef);
   }
@@ -76,14 +82,19 @@ window.FFV_GAME = (() => {
   }
 
   function update(dt, ts) {
-    const elapsedSec = Math.max(0, (ts - state.startedAt) / 1000);
-    state.elapsedSeconds = elapsedSec;
-    state.timeLeft = Math.max(0, cfg.GAME.SESSION_SECONDS - elapsedSec);
-    const stage = getDifficultyStage(elapsedSec);
+    if (state.status !== 'playing') return;
+
+    // Timer chỉ cộng khi game thực sự đang PLAYING.
+    state.elapsedMs += dt * 1000;
+    state.remainingMs = Math.max(0, cfg.GAME.SESSION_SECONDS * 1000 - state.elapsedMs);
+    state.elapsedSeconds = state.elapsedMs / 1000;
+    state.timeLeft = state.remainingMs / 1000;
+
+    const stage = getDifficultyStage(state.elapsedSeconds);
     state.difficultyStage = stage.id;
     spawnCooldown -= dt;
 
-    if (state.timeLeft <= 0) {
+    if (state.remainingMs <= 0) {
       window.FFV_SCREENS.updateHUD(state);
       finishGame('timeout');
       return;
@@ -155,20 +166,22 @@ window.FFV_GAME = (() => {
       const b = trail[i];
       for (const fruit of fruits) {
         if (fruit.dead || fruit.sliced) continue;
-        if (segmentHitsCircle(a, b, fruit)) {
+        const hit = segmentHitsCircle(a, b, fruit);
+        if (hit.hit) {
           state.accuracyAttempts += 1;
           if (fruit.forbidden) {
             state.score = Math.max(0, state.score - 20);
             state.combo = 1;
+            makeCutBurst(hit.x, hit.y, '#c7d2de');
           } else {
-            slashFruit(fruit, ts);
+            slashFruit(fruit, ts, hit);
           }
         }
       }
     }
   }
 
-  function slashFruit(fruit, ts) {
+  function slashFruit(fruit, ts, hitPoint) {
     fruit.sliced = true;
     fruit.dead = true;
     state.accuracyHits += 1;
@@ -193,6 +206,7 @@ window.FFV_GAME = (() => {
     state.score += fruit.score * multiplier;
 
     makeSplash(fruit.x, fruit.y, fruit.color);
+    makeCutBurst(hitPoint.x, hitPoint.y, fruit.color);
     playCutSound();
   }
 
@@ -204,6 +218,21 @@ window.FFV_GAME = (() => {
         vx: Math.random() * 280 - 140,
         vy: Math.random() * -220,
         life: 0.6 + Math.random() * 0.4,
+        color
+      });
+    }
+  }
+
+  function makeCutBurst(x, y, color) {
+    for (let i = 0; i < 10; i += 1) {
+      const angle = (Math.PI * 2 * i) / 10 + Math.random() * 0.3;
+      const speed = 120 + Math.random() * 160;
+      particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 80,
+        life: 0.18 + Math.random() * 0.22,
         color
       });
     }
@@ -293,7 +322,8 @@ window.FFV_GAME = (() => {
     const cy = a.y + aby * t;
     const dx = cx - circle.x;
     const dy = cy - circle.y;
-    return (dx * dx + dy * dy) <= circle.r * circle.r;
+    const hit = (dx * dx + dy * dy) <= circle.r * circle.r;
+    return { hit, x: cx, y: cy };
   }
 
   return { init, start, stop, stopByPlayer, state };
