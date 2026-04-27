@@ -269,9 +269,9 @@ BBMV.utils = {
     }
     const active = document.querySelector('.screen.active');
     if (active) return true;
-    const fallbackScreen = BBMV.utils._lastScreenName || BBMV.utils._lastScreenId || 'profile';
+    const fallbackScreen = BBMV.utils._lastScreenName || BBMV.utils._lastScreenId || 'menu';
     const ok = BBMV.utils.showScreen(fallbackScreen, { fatalOnMissing: false });
-    if (!ok && fallbackScreen !== 'profile') BBMV.utils.showScreen('profile', { fatalOnMissing: false });
+    if (!ok && fallbackScreen !== 'menu') BBMV.utils.showScreen('menu', { fatalOnMissing: false });
     console.warn('[BBMV] Recovered from blank screen, restored:', fallbackScreen);
     return false;
   },
@@ -313,19 +313,19 @@ BBMV.utils = {
       fallback.innerHTML = `
         <div style="max-width:420px;margin:40px auto;padding:24px;border-radius:24px;background:#fff;box-shadow:0 16px 40px rgba(45,74,90,0.2);text-align:center;">
           <h2 style="margin:0 0 10px;font-family:'Baloo 2',cursive;color:#2D4A5A;">⚠️ Ứng dụng đang phục hồi</h2>
-          <p style="margin:0 0 16px;color:#3C5968;line-height:1.5;">Đã xảy ra lỗi ở một module. Bạn vẫn có thể quay về màn hình chọn hồ sơ.</p>
-          <button id="btn-fallback-profiles" style="border:none;border-radius:99px;padding:12px 16px;background:linear-gradient(135deg,#8DD5EE,#5BC4E8);color:#fff;font-weight:700;cursor:pointer;">Về chọn hồ sơ</button>
+          <p style="margin:0 0 16px;color:#3C5968;line-height:1.5;">Đã xảy ra lỗi ở một module. Bạn vẫn có thể quay về menu game.</p>
+          <button id="btn-fallback-menu" style="border:none;border-radius:99px;padding:12px 16px;background:linear-gradient(135deg,#8DD5EE,#5BC4E8);color:#fff;font-weight:700;cursor:pointer;">Về menu game</button>
         </div>
       `;
       app.appendChild(fallback);
-      fallback.querySelector('#btn-fallback-profiles')?.addEventListener('pointerdown', () => {
-        const profiles = BBMV.utils.$('screen-profile');
+      fallback.querySelector('#btn-fallback-menu')?.addEventListener('pointerdown', () => {
+        const menu = BBMV.utils.$('screen-menu');
         fallback.classList.remove('active');
         fallback.setAttribute('aria-hidden', 'true');
-        if (profiles) {
-          profiles.classList.add('active');
-          profiles.setAttribute('aria-hidden', 'false');
-          BBMV.utils._lastScreenId = 'screen-profile';
+        if (menu) {
+          menu.classList.add('active');
+          menu.setAttribute('aria-hidden', 'false');
+          BBMV.utils._lastScreenId = 'screen-menu';
         }
       });
     } else {
@@ -362,7 +362,7 @@ BBMV.utils = {
         <p style="margin:0 0 10px;color:#3C5968;line-height:1.5;">${BBMV.utils.escapeHTML(safeMessage)}</p>
         ${details ? `<p style="margin:0 0 16px;color:#6B7F8A;font-size:13px;line-height:1.45;">Chi tiết: ${BBMV.utils.escapeHTML(details)}</p>` : ''}
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-          <button id="btn-fatal-back-profiles" style="border:none;border-radius:99px;padding:12px 16px;background:linear-gradient(135deg,#8DD5EE,#5BC4E8);color:#fff;font-weight:700;cursor:pointer;">Về chọn hồ sơ</button>
+          <button id="btn-fatal-back-menu" style="border:none;border-radius:99px;padding:12px 16px;background:linear-gradient(135deg,#8DD5EE,#5BC4E8);color:#fff;font-weight:700;cursor:pointer;">Về menu game</button>
           <button id="btn-fatal-reload" style="border:2px solid #CDE6F0;border-radius:99px;padding:12px 16px;background:#fff;color:#2D4A5A;font-weight:700;cursor:pointer;">Tải lại</button>
         </div>
       </div>
@@ -372,9 +372,9 @@ BBMV.utils = {
     fatal.setAttribute('aria-hidden', 'false');
     BBMV.utils._lastScreenId = 'screen-fatal-error';
 
-    fatal.querySelector('#btn-fatal-back-profiles')?.addEventListener('pointerdown', () => {
-      const ok = BBMV.utils.showScreen('profile');
-      if (!ok) BBMV.utils.showFallbackScreen('fatal-back-profiles');
+    fatal.querySelector('#btn-fatal-back-menu')?.addEventListener('pointerdown', () => {
+      const ok = BBMV.utils.showScreen('menu');
+      if (!ok) BBMV.utils.showFallbackScreen('fatal-back-menu');
     });
     fatal.querySelector('#btn-fatal-reload')?.addEventListener('pointerdown', () => location.reload());
   },
