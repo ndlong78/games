@@ -117,9 +117,17 @@ BBMV.profile = (() => {
           renderProfilesScreen();
           return;
         }
-        renderMenuScreen();
-        BBMV.utils.showScreen('screen-menu');
-        BBMV.audio.speak(`Chào ${p.name}! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!`, true);
+        try {
+          renderMenuScreen();
+          const shown = BBMV.utils.showScreen('screen-menu');
+          if (!shown) throw new Error('showScreen(screen-menu) failed');
+          BBMV.audio.speak(`Chào ${p.name}! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!`, true);
+        } catch (err) {
+          console.error('[BBMV] Failed to open profile menu:', err);
+          BBMV.utils.showToast('Có lỗi khi mở hồ sơ. Vui lòng thử lại.');
+          BBMV.utils.showScreen('screen-profiles');
+          renderProfilesScreen();
+        }
       });
       card.querySelector('.profile-delete')?.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
