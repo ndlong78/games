@@ -12,6 +12,7 @@ window.FFV_INPUT = (() => {
       const p = getPoint(event);
       slashTrail.length = 0;
       slashTrail.push(p);
+      window.FFV_SLASH_EFFECT.addSlashPoint(p.x, p.y);
       currentPoint = p;
       canvas.setPointerCapture?.(event.pointerId);
     };
@@ -22,6 +23,7 @@ window.FFV_INPUT = (() => {
       slashTrail.push(p);
       trimExpiredPoints(p.t);
       while (slashTrail.length > TRAIL_MAX_POINTS) slashTrail.shift();
+      window.FFV_SLASH_EFFECT.addSlashPoint(p.x, p.y);
       currentPoint = p;
     };
 
@@ -53,54 +55,6 @@ window.FFV_INPUT = (() => {
     return getActiveTrail();
   }
 
-  function drawTrail(ctx) {
-    const trail = getActiveTrail();
-    if (trail.length < 2) return;
-    drawSlashTrail(ctx, trail, performance.now());
-  }
-
-  function drawSlashTrail(ctx, slashTrail, now) {
-    const activeTrail = slashTrail.filter((p) => (now - p.t) < TRAIL_TTL_MS);
-    if (activeTrail.length < 2) return;
-
-    for (let i = 1; i < activeTrail.length; i += 1) {
-      const p1 = activeTrail[i - 1];
-      const p2 = activeTrail[i];
-      const age = now - p2.t;
-      const life = 1 - (age / TRAIL_TTL_MS);
-      if (life <= 0) continue;
-
-      const widthGlow = 10 * life;
-      const widthCore = Math.max(1.5, 3 * life);
-      const alphaGlow = 0.35 * life;
-      const alphaCore = 0.9 * life;
-
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.lineJoin = 'miter';
-      ctx.lineCap = 'butt';
-      ctx.strokeStyle = `rgba(120, 230, 255, ${alphaGlow})`;
-      ctx.lineWidth = widthGlow;
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.lineJoin = 'miter';
-      ctx.lineCap = 'butt';
-      ctx.strokeStyle = `rgba(255, 255, 255, ${alphaCore})`;
-      ctx.lineWidth = widthCore;
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
-      ctx.restore();
-    }
-  }
-
   return {
     setup,
     consumeTrail,
@@ -109,8 +63,8 @@ window.FFV_INPUT = (() => {
       if (!v) {
         slashTrail.length = 0;
         currentPoint = null;
+        window.FFV_SLASH_EFFECT.clearSlashEffect();
       }
-    },
-    drawTrail
+    }
   };
 })();

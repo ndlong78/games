@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'ffv-v2026-04-27-120s-2';
+const CACHE_NAME = 'games-fruit-slash-blade-v5';
 const PRECACHE = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const PRECACHE = [
   './js/layout.js',
   './js/input.js',
   './js/background.js',
+  './js/slashEffect.js',
   './js/gameplay.js',
   './js/screens.js',
   './js/report.js',
@@ -17,13 +18,13 @@ const PRECACHE = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE)));
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
   );
   self.clients.claim();
 });
@@ -33,7 +34,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request).then((resp) => {
       const clone = resp.clone();
-      caches.open(CACHE_VERSION).then((cache) => cache.put(event.request, clone));
+      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
       return resp;
     }).catch(() => caches.match('./index.html')))
   );
