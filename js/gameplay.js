@@ -11,7 +11,8 @@ window.FFV_GAME = (() => {
     accuracyHits: 0,
     accuracyAttempts: 0,
     missed: 0,
-    startedAt: 0
+    startedAt: 0,
+    endAt: 0
   };
 
   let canvas;
@@ -44,6 +45,7 @@ window.FFV_GAME = (() => {
     state.accuracyAttempts = 0;
     state.missed = 0;
     state.startedAt = Date.now();
+    state.endAt = state.startedAt + (cfg.SESSION_DURATION_SECONDS * 1000);
     fruits = [];
     particles = [];
     spawnCooldown = 0;
@@ -70,11 +72,18 @@ window.FFV_GAME = (() => {
   }
 
   function update(dt, ts) {
-    const elapsedSec = cfg.SESSION_DURATION_SECONDS - state.timeLeft;
+    const now = Date.now();
+    state.timeLeft = Math.max(0, (state.endAt - now) / 1000);
+    const elapsedSec = Math.max(0, (now - state.startedAt) / 1000);
     const stage = getDifficultyStage(elapsedSec);
     state.difficultyStage = stage.id;
-    state.timeLeft -= dt;
     spawnCooldown -= dt;
+
+    if (state.timeLeft <= 0) {
+      window.FFV_SCREENS.updateHUD(state);
+      finishGame('timeout');
+      return;
+    }
 
     if (spawnCooldown <= 0) {
       spawnWave(stage);
@@ -89,6 +98,7 @@ window.FFV_GAME = (() => {
       if (!item.sliced && item.y - item.r > window.FFV_LAYOUT.state.logicalHeight + 30) {
         item.dead = true;
         if (!item.forbidden) {
+          // Tim chỉ mang tính động viên, không dùng để kết thúc game.
           state.hearts = Math.max(0, state.hearts - 1);
           state.missed += 1;
           state.combo = 1;
@@ -107,9 +117,6 @@ window.FFV_GAME = (() => {
     particles = particles.filter((p) => p.life > 0);
 
     checkSlices(ts);
-    if (state.timeLeft <= 0) {
-      finishGame('timeout');
-    }
 
     window.FFV_SCREENS.updateHUD(state);
   }
