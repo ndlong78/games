@@ -14,8 +14,40 @@ BBMV.profile = (() => {
   let editingId = null;
   let skipConfirmCount = 0;
 
-  const getAll = () => BBMV.utils.lsGet(LS_KEY, []);
-  const saveAll = (list) => BBMV.utils.lsSet(LS_KEY, list);
+  const normalizeProfile = (raw, idx = 0) => {
+    if (!raw || typeof raw !== 'object') return null;
+
+    const safeName = BBMV.utils.sanitizeChildName(raw.name);
+    const validName = BBMV.utils.isValidChildName(safeName) ? safeName : `Bé ${idx + 1}`;
+    const parsedAge = Number.parseInt(raw.age, 10);
+    const age = Number.isFinite(parsedAge) ? BBMV.utils.clamp(parsedAge, 3, 10) : 5;
+    const eye = ['left', 'right', 'both'].includes(raw.eye) ? raw.eye : 'right';
+    const avatar = AVATARS.includes(raw.avatar) ? raw.avatar : AVATARS[0];
+    const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id : BBMV.utils.uuid();
+    const createdAt = Number.isNaN(new Date(raw.createdAt).getTime()) ? BBMV.utils.now() : raw.createdAt;
+
+    return { id, name: validName, avatar, age, eye, createdAt };
+  };
+
+  const getAll = () => {
+    const raw = BBMV.utils.lsGet(LS_KEY, []);
+    const source = Array.isArray(raw) ? raw : Object.values(raw || {});
+    const normalized = source
+      .map((item, idx) => normalizeProfile(item, idx))
+      .filter(Boolean);
+
+    const shouldMigrate = !Array.isArray(raw) || normalized.length !== source.length ||
+      JSON.stringify(source) !== JSON.stringify(normalized);
+    if (shouldMigrate) BBMV.utils.lsSet(LS_KEY, normalized);
+    return normalized;
+  };
+
+  const saveAll = (list) => {
+    const safeList = Array.isArray(list)
+      ? list.map((item, idx) => normalizeProfile(item, idx)).filter(Boolean)
+      : [];
+    BBMV.utils.lsSet(LS_KEY, safeList);
+  };
   const getById = (id) => getAll().find(p => p.id === id) || null;
 
   const getCurrent = () => {
@@ -23,7 +55,10 @@ BBMV.profile = (() => {
     return getById(currentProfileId);
   };
 
-  const setCurrent = (id) => { currentProfileId = id; };
+  const setCurrent = (id) => {
+    currentProfileId = getById(id) ? id : null;
+    return currentProfileId;
+  };
 
   const create = (name, avatar, age, eye) => {
     const list = getAll();
@@ -75,7 +110,12 @@ BBMV.profile = (() => {
       card.addEventListener('pointerdown', (e) => {
         if (e.target.classList.contains('profile-delete')) return;
         BBMV.audio.sfx.button();
-        setCurrent(p.id);
+        const selectedId = setCurrent(p.id);
+        if (!selectedId) {
+          BBMV.utils.showToast('Không thể mở hồ sơ này. Vui lòng tạo lại hồ sơ mới.');
+          renderProfilesScreen();
+          return;
+        }
         renderMenuScreen();
         BBMV.utils.showScreen('screen-menu');
         BBMV.audio.speak(`Chào ${p.name}! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!`, true);
