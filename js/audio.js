@@ -156,9 +156,16 @@ BBMV.audio = (() => {
 
   const _speakNext = () => {
     if (!speechQueue.length) { speechBusy = false; return; }
+    if (typeof window.SpeechSynthesisUtterance !== 'function') {
+      // Một số webview/browser cũ có speechSynthesis nhưng thiếu constructor utterance.
+      // Không được để crash app khi chuyển màn hình profile -> menu.
+      speechQueue = [];
+      speechBusy = false;
+      return;
+    }
     speechBusy = true;
     const text = speechQueue.shift();
-    const utt = new SpeechSynthesisUtterance(text);
+    const utt = new window.SpeechSynthesisUtterance(text);
 
     const voices = window.speechSynthesis.getVoices();
     const viVoice = voices.find(v => v.lang === 'vi-VN') ||
