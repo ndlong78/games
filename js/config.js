@@ -1,9 +1,10 @@
 window.FFV_CONFIG = {
   APP_NAME: 'Hoa Quả Bay Mắt Vui',
-  TIMER_SECONDS: 120,
+  GAME: {
+    SESSION_SECONDS: 120
+  },
   MAX_HEARTS: 3,
   COMBO_WINDOW_MS: 1800,
-  SESSION_DURATION_SECONDS: 120,
   STORAGE_KEYS: {
     parentPin: 'ffv_parent_pin',
     reports: 'ffv_reports',

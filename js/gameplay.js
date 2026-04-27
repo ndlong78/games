@@ -3,7 +3,8 @@ window.FFV_GAME = (() => {
   const state = {
     running: false,
     score: 0,
-    timeLeft: cfg.TIMER_SECONDS,
+    timeLeft: cfg.GAME.SESSION_SECONDS,
+    elapsedSeconds: 0,
     hearts: cfg.MAX_HEARTS,
     combo: 1,
     bestCombo: 1,
@@ -12,7 +13,7 @@ window.FFV_GAME = (() => {
     accuracyAttempts: 0,
     missed: 0,
     startedAt: 0,
-    endAt: 0
+    finished: false
   };
 
   let canvas;
@@ -36,7 +37,8 @@ window.FFV_GAME = (() => {
   function start() {
     state.running = true;
     state.score = 0;
-    state.timeLeft = cfg.SESSION_DURATION_SECONDS;
+    state.timeLeft = cfg.GAME.SESSION_SECONDS;
+    state.elapsedSeconds = 0;
     state.hearts = cfg.MAX_HEARTS;
     state.combo = 1;
     state.bestCombo = 1;
@@ -44,8 +46,8 @@ window.FFV_GAME = (() => {
     state.accuracyHits = 0;
     state.accuracyAttempts = 0;
     state.missed = 0;
-    state.startedAt = Date.now();
-    state.endAt = state.startedAt + (cfg.SESSION_DURATION_SECONDS * 1000);
+    state.startedAt = performance.now();
+    state.finished = false;
     fruits = [];
     particles = [];
     spawnCooldown = 0;
@@ -72,9 +74,9 @@ window.FFV_GAME = (() => {
   }
 
   function update(dt, ts) {
-    const now = Date.now();
-    state.timeLeft = Math.max(0, (state.endAt - now) / 1000);
-    const elapsedSec = Math.max(0, (now - state.startedAt) / 1000);
+    const elapsedSec = Math.max(0, (ts - state.startedAt) / 1000);
+    state.elapsedSeconds = elapsedSec;
+    state.timeLeft = Math.max(0, cfg.GAME.SESSION_SECONDS - elapsedSec);
     const stage = getDifficultyStage(elapsedSec);
     state.difficultyStage = stage.id;
     spawnCooldown -= dt;
@@ -255,14 +257,18 @@ window.FFV_GAME = (() => {
   }
 
   function finishGame(reason) {
+    if (state.finished) return;
+    state.finished = true;
     stop();
     const accuracy = state.accuracyAttempts === 0 ? 0 : Math.round((state.accuracyHits / state.accuracyAttempts) * 100);
     const result = {
       date: new Date().toISOString(),
-      durationSeconds: cfg.SESSION_DURATION_SECONDS,
+      durationSeconds: cfg.GAME.SESSION_SECONDS,
+      elapsedSeconds: Math.min(cfg.GAME.SESSION_SECONDS, Math.max(0, Math.round(state.elapsedSeconds))),
       score: state.score,
       fruitsSliced: state.accuracyHits,
       fruitsMissed: state.missed,
+      heartsRemaining: Math.max(0, state.hearts),
       accuracy,
       maxCombo: state.bestCombo,
       finalDifficultyStage: state.difficultyStage,
