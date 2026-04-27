@@ -13,6 +13,7 @@ BBMV.profile = (() => {
   let selectedEye = 'right';
   let editingId = null;
   let skipConfirmCount = 0;
+  let lastLoadError = null;
 
   const normalizeProfile = (raw, idx = 0) => {
     if (!raw || typeof raw !== 'object') return null;
@@ -31,16 +32,35 @@ BBMV.profile = (() => {
   };
 
   const getAll = () => {
-    const raw = BBMV.utils.lsGet(LS_KEY, []);
-    const source = Array.isArray(raw) ? raw : Object.values(raw || {});
-    const normalized = source
-      .map((item, idx) => normalizeProfile(item, idx))
-      .filter(Boolean);
+    lastLoadError = null;
+    try {
+      const raw = BBMV.utils.lsGet(LS_KEY, [], {
+        resetOnError: true,
+        logError: true,
+        logPrefix: '[BBMV][profile]'
+      });
+      const isRawObject = raw && typeof raw === 'object';
+      const source = Array.isArray(raw) ? raw : Object.values(isRawObject ? raw : {});
+      const normalized = source
+        .map((item, idx) => normalizeProfile(item, idx))
+        .filter(Boolean);
 
-    const shouldMigrate = !Array.isArray(raw) || normalized.length !== source.length ||
-      JSON.stringify(source) !== JSON.stringify(normalized);
-    if (shouldMigrate) BBMV.utils.lsSet(LS_KEY, normalized);
-    return normalized;
+      const shouldMigrate = !Array.isArray(raw) || normalized.length !== source.length ||
+        JSON.stringify(source) !== JSON.stringify(normalized);
+      if (shouldMigrate) {
+        BBMV.utils.lsSet(LS_KEY, normalized);
+        if (source.length > 0 && normalized.length === 0) {
+          lastLoadError = 'invalid_profiles_shape';
+          console.error('[BBMV][profile] Hồ sơ bị lỗi cấu trúc, đã reset về mặc định an toàn.');
+        }
+      }
+      return normalized;
+    } catch (err) {
+      lastLoadError = 'profile_load_failed';
+      console.error('[BBMV][profile] Lỗi khi tải hồ sơ:', err);
+      BBMV.utils.lsSet(LS_KEY, []);
+      return [];
+    }
   };
 
   const saveAll = (list) => {
@@ -93,9 +113,18 @@ BBMV.profile = (() => {
     const list = getAll();
     grid.innerHTML = '';
 
+    if (lastLoadError) {
+      const warn = document.createElement('div');
+      warn.style.cssText = 'grid-column:1/-1;background:#FFF4E8;border:2px solid #FFD0A6;border-radius:18px;padding:14px 16px;margin-bottom:10px;color:#8A4B08;font-weight:700;line-height:1.45;';
+      warn.textContent = 'Hồ sơ bị lỗi dữ liệu. Vui lòng tạo lại hồ sơ hoặc reset dữ liệu.';
+      grid.appendChild(warn);
+    }
+
     if (!list.length) {
-      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-mid);font-size:18px;font-weight:700;">
-        Chưa có hồ sơ nào.<br/>Hãy thêm hồ sơ cho bé nhé! 😊</div>`;
+      const empty = document.createElement('div');
+      empty.style.cssText = 'grid-column:1/-1;text-align:center;padding:32px;color:var(--text-mid);font-size:18px;font-weight:700;';
+      empty.innerHTML = 'Chưa có hồ sơ nào.<br/>Hãy thêm hồ sơ cho bé nhé! 😊';
+      grid.appendChild(empty);
       return;
     }
 
@@ -118,7 +147,8 @@ BBMV.profile = (() => {
           return;
         }
         try {
-          renderMenuScreen();
+          const rendered = renderMenuScreen();
+          if (!rendered) throw new Error('renderMenuScreen() failed');
           const shown = BBMV.utils.showScreen('screen-menu');
           if (!shown) throw new Error('showScreen(screen-menu) failed');
           BBMV.audio.speak(`Chào ${p.name}! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!`, true);
@@ -248,16 +278,28 @@ BBMV.profile = (() => {
   };
 
   const renderMenuScreen = () => {
-    const p = getCurrent();
-    if (!p) return;
-    const chipAvatar = BBMV.utils.$('chip-avatar');
-    const chipName = BBMV.utils.$('chip-name');
-    if (chipAvatar) chipAvatar.textContent = p.avatar;
-    if (chipName) chipName.textContent = p.name;
+    try {
+      const p = getCurrent();
+      if (!p) {
+        const chipName = BBMV.utils.$('chip-name');
+        if (chipName) chipName.textContent = 'Hồ sơ lỗi';
+        BBMV.utils.showToast('Hồ sơ bị lỗi dữ liệu. Vui lòng tạo lại hồ sơ hoặc reset dữ liệu.');
+        return false;
+      }
+      const chipAvatar = BBMV.utils.$('chip-avatar');
+      const chipName = BBMV.utils.$('chip-name');
+      if (chipAvatar) chipAvatar.textContent = p.avatar;
+      if (chipName) chipName.textContent = p.name;
 
-    const streak = BBMV.gamification ? BBMV.gamification.getStreak(p.id) : 0;
-    const streakEl = BBMV.utils.$('menu-streak');
-    if (streakEl) streakEl.textContent = streak > 0 ? `🔥 ${streak} ngày` : `🌟 Chơi thôi!`;
+      const streak = BBMV.gamification ? BBMV.gamification.getStreak(p.id) : 0;
+      const streakEl = BBMV.utils.$('menu-streak');
+      if (streakEl) streakEl.textContent = streak > 0 ? `🔥 ${streak} ngày` : `🌟 Chơi thôi!`;
+      return true;
+    } catch (err) {
+      console.error('[BBMV][profile] renderMenuScreen failed:', err);
+      BBMV.utils.showToast('Hồ sơ bị lỗi dữ liệu. Vui lòng tạo lại hồ sơ hoặc reset dữ liệu.');
+      return false;
+    }
   };
 
   const bindEvents = () => {

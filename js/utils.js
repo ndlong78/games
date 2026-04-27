@@ -61,7 +61,19 @@ BBMV.utils = {
 
   clone: (obj) => JSON.parse(JSON.stringify(obj)),
   lsSet: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); return true; } catch(e) { console.error('[BBMV] localStorage write error:', e); return false; } },
-  lsGet: (key, fallback = null) => { try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; } catch(e) { return fallback; } },
+  lsGet: (key, fallback = null, options = {}) => {
+    const { resetOnError = false, logError = false, logPrefix = '[BBMV]' } = options || {};
+    try {
+      const v = localStorage.getItem(key);
+      return v !== null ? JSON.parse(v) : fallback;
+    } catch (e) {
+      if (logError) console.error(`${logPrefix} localStorage parse error at key "${key}":`, e);
+      if (resetOnError) {
+        try { localStorage.setItem(key, JSON.stringify(fallback)); } catch (_) {}
+      }
+      return fallback;
+    }
+  },
   lsDel: (key) => { try { localStorage.removeItem(key); } catch(e) {} },
   lsClearByPrefix: (prefix) => {
     try {
