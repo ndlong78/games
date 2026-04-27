@@ -10,7 +10,7 @@ window.FFV_SCREENS = (() => {
 
   function updateHUD(state) {
     $('hud-score').textContent = state.score;
-    $('hud-time').textContent = Math.max(0, Math.ceil(state.timeLeft));
+    $('hud-time').textContent = `${Math.max(0, Math.ceil(state.timeLeft))}s`;
     $('hud-hearts').textContent = Math.max(0, state.hearts);
     $('hud-combo').textContent = `x${state.combo}`;
   }
