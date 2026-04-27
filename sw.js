@@ -2,7 +2,8 @@
 // sw.js — Service Worker: cache-first cho offline support
 // ============================================================
 
-const CACHE_NAME = 'bbmv-v2.1.1';
+const CACHE_VERSION = '2026.04.27-2';
+const CACHE_NAME = `bbmv-cache-${CACHE_VERSION}`;
 const ASSETS = [
   './',
   './index.html',
@@ -51,6 +52,10 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   if (e.request.url.startsWith('chrome-extension')) return;
@@ -58,6 +63,11 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   const isSameOrigin = url.origin === self.location.origin;
   const isDocument = e.request.mode === 'navigate' || e.request.destination === 'document';
+  const isCriticalAsset = isSameOrigin && (
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('/index.html')
+  );
 
   if (isDocument) {
     e.respondWith(
@@ -73,6 +83,18 @@ self.addEventListener('fetch', (e) => {
   }
 
   if (isSameOrigin) {
+    if (isCriticalAsset) {
+      e.respondWith(
+        fetch(e.request).then((response) => {
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copy));
+          }
+          return response;
+        }).catch(() => caches.match(e.request))
+      );
+      return;
+    }
     e.respondWith(
       caches.match(e.request).then(cached => {
         const networkFetch = fetch(e.request).then(response => {
