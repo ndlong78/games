@@ -1,19 +1,19 @@
 window.FFV_CONFIG = {
   APP_NAME: 'Hoa Quả Bay Mắt Vui',
-  TIMER_SECONDS: 60,
+  TIMER_SECONDS: 120,
   MAX_HEARTS: 3,
   COMBO_WINDOW_MS: 1800,
+  SESSION_DURATION_SECONDS: 120,
   STORAGE_KEYS: {
     parentPin: 'ffv_parent_pin',
     reports: 'ffv_reports',
     level: 'ffv_level'
   },
-  LEVELS: [
-    { id: 1, label: 'Level 1', fruitsPerWave: 1, speed: 0.85, radiusScale: 1.2, forbidden: false, redOnly: false },
-    { id: 2, label: 'Level 2', fruitsPerWave: 2, speed: 1, radiusScale: 1, forbidden: false, redOnly: false },
-    { id: 3, label: 'Level 3', fruitsPerWave: 2, speed: 1.2, radiusScale: 0.84, forbidden: false, redOnly: false },
-    { id: 4, label: 'Level 4', fruitsPerWave: 3, speed: 1.3, radiusScale: 0.82, forbidden: true, redOnly: false },
-    { id: 5, label: 'Level 5', fruitsPerWave: 3, speed: 1.35, radiusScale: 0.8, forbidden: true, redOnly: true }
+  DIFFICULTY_STAGES: [
+    { id: 1, label: 'Dễ', startSecond: 0, endSecond: 30, fruitsPerWave: 1, speed: 0.82, radiusScale: 1.24, forbidden: false },
+    { id: 2, label: 'Vừa', startSecond: 31, endSecond: 60, fruitsPerWave: 2, speed: 1.02, radiusScale: 1.06, forbidden: false },
+    { id: 3, label: 'Nhanh', startSecond: 61, endSecond: 90, fruitsPerWave: 3, speed: 1.22, radiusScale: 0.92, forbidden: false },
+    { id: 4, label: 'Thử thách', startSecond: 91, endSecond: 120, fruitsPerWave: 3, speed: 1.34, radiusScale: 0.86, forbidden: true }
   ],
   FRUITS: [
     { type: 'apple', emoji: '🍎', color: '#ef4a4a', score: 10, red: true },

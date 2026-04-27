@@ -7,7 +7,7 @@ window.FFV_GAME = (() => {
     hearts: cfg.MAX_HEARTS,
     combo: 1,
     bestCombo: 1,
-    level: 1,
+    difficultyStage: 1,
     accuracyHits: 0,
     accuracyAttempts: 0,
     missed: 0,
@@ -32,15 +32,14 @@ window.FFV_GAME = (() => {
     window.FFV_LAYOUT.resizeCanvas(canvas, ctx);
   }
 
-  function start(level) {
-    const picked = cfg.LEVELS.find((l) => l.id === level) || cfg.LEVELS[0];
+  function start() {
     state.running = true;
     state.score = 0;
-    state.timeLeft = cfg.TIMER_SECONDS;
+    state.timeLeft = cfg.SESSION_DURATION_SECONDS;
     state.hearts = cfg.MAX_HEARTS;
     state.combo = 1;
     state.bestCombo = 1;
-    state.level = picked.id;
+    state.difficultyStage = 1;
     state.accuracyHits = 0;
     state.accuracyAttempts = 0;
     state.missed = 0;
@@ -71,13 +70,15 @@ window.FFV_GAME = (() => {
   }
 
   function update(dt, ts) {
-    const lv = cfg.LEVELS[state.level - 1];
+    const elapsedSec = cfg.SESSION_DURATION_SECONDS - state.timeLeft;
+    const stage = getDifficultyStage(elapsedSec);
+    state.difficultyStage = stage.id;
     state.timeLeft -= dt;
     spawnCooldown -= dt;
 
     if (spawnCooldown <= 0) {
-      spawnWave(lv);
-      spawnCooldown = Math.max(0.45, 1.2 - lv.speed * 0.15);
+      spawnWave(stage);
+      spawnCooldown = Math.max(0.4, 1.2 - stage.speed * 0.16);
     }
 
     for (const item of fruits) {
@@ -88,7 +89,7 @@ window.FFV_GAME = (() => {
       if (!item.sliced && item.y - item.r > window.FFV_LAYOUT.state.logicalHeight + 30) {
         item.dead = true;
         if (!item.forbidden) {
-          state.hearts -= 1;
+          state.hearts = Math.max(0, state.hearts - 1);
           state.missed += 1;
           state.combo = 1;
         }
@@ -106,11 +107,16 @@ window.FFV_GAME = (() => {
     particles = particles.filter((p) => p.life > 0);
 
     checkSlices(ts);
-    if (state.hearts <= 0 || state.timeLeft <= 0) {
-      finishGame();
+    if (state.timeLeft <= 0) {
+      finishGame('timeout');
     }
 
     window.FFV_SCREENS.updateHUD(state);
+  }
+
+  function getDifficultyStage(elapsedSec) {
+    const roundedSec = Math.floor(elapsedSec);
+    return cfg.DIFFICULTY_STAGES.find((item) => roundedSec >= item.startSecond && roundedSec <= item.endSecond) || cfg.DIFFICULTY_STAGES[cfg.DIFFICULTY_STAGES.length - 1];
   }
 
   function spawnWave(levelConfig) {
@@ -142,9 +148,6 @@ window.FFV_GAME = (() => {
           state.accuracyAttempts += 1;
           if (fruit.forbidden) {
             state.score = Math.max(0, state.score - 20);
-            state.combo = 1;
-          } else if (cfg.LEVELS[state.level - 1].redOnly && !fruit.red) {
-            state.score = Math.max(0, state.score - 10);
             state.combo = 1;
           } else {
             slashFruit(fruit, ts);
@@ -244,21 +247,27 @@ window.FFV_GAME = (() => {
     window.FFV_INPUT.drawTrail(ctx);
   }
 
-  function finishGame() {
+  function finishGame(reason) {
     stop();
-    const durationSec = Math.round((Date.now() - state.startedAt) / 1000);
     const accuracy = state.accuracyAttempts === 0 ? 0 : Math.round((state.accuracyHits / state.accuracyAttempts) * 100);
     const result = {
       date: new Date().toISOString(),
-      durationSec,
+      durationSeconds: cfg.SESSION_DURATION_SECONDS,
       score: state.score,
+      fruitsSliced: state.accuracyHits,
+      fruitsMissed: state.missed,
       accuracy,
-      missed: state.missed,
       maxCombo: state.bestCombo,
-      level: state.level
+      finalDifficultyStage: state.difficultyStage,
+      endedBy: reason
     };
     window.FFV_REPORT.save(result);
     window.FFV_SCREENS.showResult(result);
+  }
+
+  function stopByPlayer() {
+    if (!state.running) return;
+    finishGame('stopped');
   }
 
   function segmentHitsCircle(a, b, circle) {
@@ -272,5 +281,5 @@ window.FFV_GAME = (() => {
     return (dx * dx + dy * dy) <= circle.r * circle.r;
   }
 
-  return { init, start, stop, state };
+  return { init, start, stop, stopByPlayer, state };
 })();

@@ -18,9 +18,10 @@
   <div id="app">
     <header class="hud" id="hud">
       <div>⭐ <span id="hud-score">0</span></div>
-      <div>⏱ <span id="hud-time">60</span>s</div>
+      <div>⏱ <span id="hud-time">120</span>s</div>
       <div>❤️ <span id="hud-hearts">3</span></div>
       <div>🔥 <span id="hud-combo">x1</span></div>
+      <button id="btn-stop" class="hud-stop">Dừng</button>
     </header>
 
     <main id="screen-menu" class="screen active">
@@ -30,7 +31,7 @@
         <button id="btn-start">Chơi ngay</button>
         <button id="btn-parent">Chế độ phụ huynh</button>
       </div>
-      <p class="note">Level: <span id="menu-level">1</span>/5</p>
+      <p class="note"><span id="menu-level">Phiên 2 phút liên tục</span></p>
     </main>
 
     <section id="screen-game" class="screen">
@@ -39,12 +40,12 @@
     </section>
 
     <section id="screen-result" class="screen">
-      <h2>Kết quả</h2>
+      <h2 id="result-title">Hoàn thành rồi!</h2>
+      <p id="result-message">Con đã chơi rất tốt!<br/>Cùng xem thành quả nhé!</p>
       <div id="result-stars" class="stars"></div>
       <div id="result-stats"></div>
       <div class="menu-actions">
         <button id="btn-replay">Chơi lại</button>
-        <button id="btn-next">Màn tiếp</button>
         <button id="btn-menu">Về menu</button>
       </div>
     </section>

@@ -27,13 +27,16 @@ window.FFV_SCREENS = (() => {
     show('screen-result');
     const stars = result.score > 520 ? '⭐⭐⭐' : result.score > 280 ? '⭐⭐' : '⭐';
     $('result-stars').textContent = stars;
+    $('result-title').textContent = 'Hoàn thành rồi!';
+    $('result-message').innerHTML = '<b>Con đã chơi rất tốt!</b><br/>Cùng xem thành quả nhé!';
     $('result-stats').innerHTML = [
       `Điểm: <b>${result.score}</b>`,
       `Độ chính xác: <b>${result.accuracy}%</b>`,
+      `Số quả đã cắt: <b>${result.fruitsSliced}</b>`,
+      `Số quả bỏ lỡ: <b>${result.fruitsMissed}</b>`,
       `Combo cao nhất: <b>${result.maxCombo}</b>`,
-      `Bỏ lỡ: <b>${result.missed}</b>`,
-      `Thời lượng: <b>${result.durationSec}s</b>`,
-      `Level: <b>${result.level}</b>`
+      `Thời lượng phiên chơi: <b>${result.durationSeconds}s (2 phút)</b>`,
+      `Mức khó cuối: <b>Giai đoạn ${result.finalDifficultyStage}/4</b>`
     ].map((row) => `<div>${row}</div>`).join('');
   }
 

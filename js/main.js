@@ -13,10 +13,10 @@
   }
 
   function bindEvents() {
-    $('btn-start').addEventListener('click', () => startGame(false));
-    $('btn-replay').addEventListener('click', () => startGame(false));
-    $('btn-next').addEventListener('click', () => startGame(true));
+    $('btn-start').addEventListener('click', () => startGame());
+    $('btn-replay').addEventListener('click', () => startGame());
     $('btn-menu').addEventListener('click', () => window.FFV_SCREENS.show('screen-menu'));
+    $('btn-stop').addEventListener('click', () => window.FFV_GAME.stopByPlayer());
 
     $('btn-parent').addEventListener('click', () => window.FFV_SCREENS.show('screen-parent'));
     $('btn-parent-back').addEventListener('click', () => window.FFV_SCREENS.show('screen-menu'));
@@ -27,19 +27,14 @@
     document.addEventListener('pointerdown', unlockAudio, { passive: true });
   }
 
-  function startGame(nextLevel) {
+  function startGame() {
     unlockAudio();
-    if (nextLevel) {
-      const current = Number(localStorage.getItem(cfg.STORAGE_KEYS.level) || '1');
-      localStorage.setItem(cfg.STORAGE_KEYS.level, String(Math.min(5, current + 1)));
-    }
-    const level = Number(localStorage.getItem(cfg.STORAGE_KEYS.level) || '1');
     const banner = $('goal-banner');
     banner.classList.remove('hidden');
-    banner.textContent = cfg.LEVELS[level - 1].redOnly ? '🎯 Level 5: Chỉ cắt quả màu đỏ' : `🎮 ${cfg.LEVELS[level - 1].label}`;
+    banner.textContent = '🎮 Phiên chơi liên tục 2 phút bắt đầu!';
     setTimeout(() => banner.classList.add('hidden'), 1200);
     window.FFV_SCREENS.show('screen-game');
-    window.FFV_GAME.start(level);
+    window.FFV_GAME.start();
   }
 
   function unlockParent() {
@@ -89,8 +84,7 @@
   }
 
   function restoreLevel() {
-    if (!localStorage.getItem(cfg.STORAGE_KEYS.level)) localStorage.setItem(cfg.STORAGE_KEYS.level, '1');
-    $('menu-level').textContent = localStorage.getItem(cfg.STORAGE_KEYS.level);
+    $('menu-level').textContent = 'Phiên 2 phút liên tục';
   }
 
   document.addEventListener('DOMContentLoaded', init);
