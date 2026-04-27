@@ -31,11 +31,13 @@ const installAudioUnlock = () => {
 
   const unlock = async () => {
     if (unlocked) return;
-    unlocked = true;
     try {
-      await BBMV.audio.resume();
+      const ok = await BBMV.audio.resume();
+      if (!ok) return;
+      unlocked = true;
     } catch (err) {
       console.warn('[BBMV] Audio unlock failed:', err);
+      return;
     }
     document.removeEventListener('pointerdown', unlock, true);
     document.removeEventListener('touchstart', unlock, true);
