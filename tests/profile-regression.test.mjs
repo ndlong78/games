@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const utilsCode = fs.readFileSync(new URL('../js/utils.js', import.meta.url), 'utf8');
 const profileCode = fs.readFileSync(new URL('../js/profile.js', import.meta.url), 'utf8');
+const gamificationCode = fs.readFileSync(new URL('../js/gamification.js', import.meta.url), 'utf8');
 
 const createStorage = () => {
   const store = new Map();
@@ -89,4 +90,40 @@ test('setCurrent không giữ id không tồn tại', () => {
 
   assert.equal(profile.setCurrent('profile01'), 'profile01');
   assert.equal(profile.getCurrent()?.id, 'profile01');
+});
+
+test('không crash khi bbmv_streak bị null lúc mở menu profile', () => {
+  const localStorage = createStorage();
+  localStorage.setItem('bbmv_profiles', JSON.stringify([{ id: 'profile01', name: 'Bong', avatar: '🐣', age: 5, eye: 'right' }]));
+  localStorage.setItem('bbmv_streak', 'null');
+
+  const sandbox = {
+    window: {},
+    BBMV: undefined,
+    localStorage,
+    document: {
+      getElementById: () => ({ textContent: '' }),
+      querySelectorAll: () => [],
+      createElement: () => ({ className: '', innerHTML: '', addEventListener() {}, querySelector: () => ({ addEventListener() {} }), style: {} })
+    },
+    requestAnimationFrame: (cb) => cb(),
+    setTimeout,
+    clearTimeout,
+    Date,
+    Math,
+    JSON,
+    Object,
+    console
+  };
+
+  vm.createContext(sandbox);
+  vm.runInContext(utilsCode, sandbox);
+  sandbox.BBMV = sandbox.window.BBMV;
+  sandbox.BBMV.audio = { sfx: { button() {} }, speak() {} };
+  vm.runInContext(gamificationCode, sandbox);
+  vm.runInContext(profileCode, sandbox);
+
+  const profile = sandbox.window.BBMV.profile;
+  assert.equal(profile.setCurrent('profile01'), 'profile01');
+  assert.doesNotThrow(() => profile.renderMenuScreen());
 });

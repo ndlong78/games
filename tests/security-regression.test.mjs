@@ -81,6 +81,15 @@ test('lsClearByPrefix chỉ xóa key cùng prefix', () => {
   assert.deepEqual(Object.keys(dump), ['other_app_key']);
 });
 
+test('lsGet reset an toàn khi JSON localStorage bị lỗi', () => {
+  const { utils, localStorage } = loadUtils();
+  localStorage.setItem('bbmv_profiles', '{broken-json');
+
+  const value = utils.lsGet('bbmv_profiles', [], { resetOnError: true });
+  assert.deepEqual(value, []);
+  assert.equal(localStorage.getItem('bbmv_profiles'), '[]');
+});
+
 test('showScreen không làm trắng app khi id màn hình không tồn tại', () => {
   const localStorage = createStorage();
   const mkClassList = (initial = []) => {

@@ -4,6 +4,8 @@
 
 BBMV.pwa = (() => {
   let deferredPrompt = null;
+  const APP_VERSION = '2026.04.27-1';
+  const SW_VERSION_KEY = 'bbmv_sw_version';
 
   const clearOldCachesAndWorkers = async () => {
     if (!('serviceWorker' in navigator)) return;
@@ -20,9 +22,30 @@ BBMV.pwa = (() => {
     }
   };
 
+  const shouldPurgeCache = () => {
+    const current = BBMV.utils.lsGet(SW_VERSION_KEY, null);
+    return current !== APP_VERSION;
+  };
+
   const register = async () => {
-    // Tạm thời gỡ SW cũ để tránh lỗi trắng màn hình do lệch cache asset trên Safari/GitHub Pages.
-    await clearOldCachesAndWorkers();
+    if (shouldPurgeCache()) {
+      // Chỉ purge khi version app thay đổi để tránh phục vụ JS cũ gây màn hình trắng.
+      await clearOldCachesAndWorkers();
+      BBMV.utils.lsSet(SW_VERSION_KEY, APP_VERSION);
+    }
+
+    if ('serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.register(`./sw.js?v=${encodeURIComponent(APP_VERSION)}`, {
+          scope: './',
+          updateViaCache: 'none'
+        });
+        reg.update().catch(() => {});
+        console.log('[BBMV] Service Worker registered:', APP_VERSION);
+      } catch (err) {
+        console.error('[BBMV] Service Worker register failed:', err);
+      }
+    }
 
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();

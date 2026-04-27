@@ -5,6 +5,21 @@
 BBMV.gamification = (() => {
   const LS_KEY_BADGES = 'bbmv_badges';
   const LS_KEY_STREAK = 'bbmv_streak';
+  const logPrefix = '[BBMV][profile]';
+  const safeObject = (value, key) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+    if (value == null) return {};
+    console.error(`${logPrefix} Dữ liệu "${key}" không hợp lệ, đã reset về mặc định.`);
+    BBMV.utils.lsSet(key, {});
+    return {};
+  };
+  const safeArray = (value, key) => {
+    if (Array.isArray(value)) return value;
+    if (value == null) return [];
+    console.error(`${logPrefix} Dữ liệu "${key}" không hợp lệ, đã reset về mặc định.`);
+    BBMV.utils.lsSet(key, []);
+    return [];
+  };
 
   // Định nghĩa tất cả huy hiệu
   const BADGE_DEFS = [
@@ -68,12 +83,12 @@ BBMV.gamification = (() => {
 
   // ── Đọc/ghi badge data ──
   const getBadges = (profileId) => {
-    const all = BBMV.utils.lsGet(LS_KEY_BADGES, {});
+    const all = safeObject(BBMV.utils.lsGet(LS_KEY_BADGES, {}, { resetOnError: true, logError: true, logPrefix }), LS_KEY_BADGES);
     return all[profileId] || {};
   };
 
   const saveBadges = (profileId, badges) => {
-    const all = BBMV.utils.lsGet(LS_KEY_BADGES, {});
+    const all = safeObject(BBMV.utils.lsGet(LS_KEY_BADGES, {}, { resetOnError: true, logError: true, logPrefix }), LS_KEY_BADGES);
     all[profileId] = badges;
     BBMV.utils.lsSet(LS_KEY_BADGES, all);
   };
@@ -94,12 +109,12 @@ BBMV.gamification = (() => {
 
   // ── Streak ──
   const getStreakData = (profileId) => {
-    const all = BBMV.utils.lsGet(LS_KEY_STREAK, {});
+    const all = safeObject(BBMV.utils.lsGet(LS_KEY_STREAK, {}, { resetOnError: true, logError: true, logPrefix }), LS_KEY_STREAK);
     return all[profileId] || { streak: 0, lastPlayDate: null };
   };
 
   const updateStreak = (profileId) => {
-    const all = BBMV.utils.lsGet(LS_KEY_STREAK, {});
+    const all = safeObject(BBMV.utils.lsGet(LS_KEY_STREAK, {}, { resetOnError: true, logError: true, logPrefix }), LS_KEY_STREAK);
     const data = all[profileId] || { streak: 0, lastPlayDate: null };
     const today = BBMV.utils.today();
 
@@ -124,7 +139,7 @@ BBMV.gamification = (() => {
 
   // ── Tính stats tổng hợp từ sessions ──
   const calcStats = (profileId) => {
-    const sessions = BBMV.utils.lsGet('bbmv_sessions', []);
+    const sessions = safeArray(BBMV.utils.lsGet('bbmv_sessions', [], { resetOnError: true, logError: true, logPrefix }), 'bbmv_sessions');
     const mySessions = sessions.filter(s => s.profileId === profileId);
 
     const totalCaught = mySessions.reduce((a, s) => a + (s.butterfliesCaught || 0), 0);

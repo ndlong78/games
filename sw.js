@@ -2,7 +2,7 @@
 // sw.js — Service Worker: cache-first cho offline support
 // ============================================================
 
-const CACHE_NAME = 'bbmv-v2.1.0';
+const CACHE_NAME = 'bbmv-v2.1.1';
 const ASSETS = [
   './',
   './index.html',
