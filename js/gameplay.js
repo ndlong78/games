@@ -23,6 +23,7 @@ window.FFV_GAME = (() => {
   let ctx;
   let fruits = [];
   let particles = [];
+  let slashSparks = [];
   let fruitId = 1;
   let lastFrame = 0;
   let spawnCooldown = 0;
@@ -56,6 +57,7 @@ window.FFV_GAME = (() => {
     state.finished = false;
     fruits = [];
     particles = [];
+    slashSparks = [];
     spawnCooldown = 0;
     lastSliceMs = 0;
     lastFrame = performance.now();
@@ -127,9 +129,17 @@ window.FFV_GAME = (() => {
       p.y += p.vy * dt;
       p.vy += 500 * dt;
     });
+    slashSparks.forEach((spark) => {
+      spark.life -= dt;
+      spark.x += spark.vx * dt;
+      spark.y += spark.vy * dt;
+      spark.vx *= 0.9;
+      spark.vy *= 0.9;
+    });
 
     fruits = fruits.filter((f) => !f.dead);
     particles = particles.filter((p) => p.life > 0);
+    slashSparks = slashSparks.filter((spark) => spark.life > 0);
 
     checkSlices(ts);
 
@@ -236,6 +246,22 @@ window.FFV_GAME = (() => {
         color
       });
     }
+    makeSlashSpark(x, y);
+  }
+
+  function makeSlashSpark(x, y) {
+    const sparkCount = 6 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < sparkCount; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      slashSparks.push({
+        x,
+        y,
+        vx: Math.cos(angle) * (80 + Math.random() * 180),
+        vy: Math.sin(angle) * (80 + Math.random() * 180),
+        len: 8 + Math.random() * 6,
+        life: 0.08 + Math.random() * 0.06
+      });
+    }
   }
 
   function playCutSound() {
@@ -281,6 +307,27 @@ window.FFV_GAME = (() => {
       ctx.beginPath();
       ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
       ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    if (slashSparks.length) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineCap = 'butt';
+      for (const spark of slashSparks) {
+        const alpha = Math.max(0, Math.min(1, spark.life / 0.14));
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = 'rgba(185, 245, 255, 0.95)';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(spark.x, spark.y);
+        ctx.lineTo(
+          spark.x - (spark.vx * 0.018) - Math.cos(Math.atan2(spark.vy, spark.vx)) * spark.len,
+          spark.y - (spark.vy * 0.018) - Math.sin(Math.atan2(spark.vy, spark.vx)) * spark.len
+        );
+        ctx.stroke();
+      }
+      ctx.restore();
       ctx.globalAlpha = 1;
     }
 
