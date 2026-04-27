@@ -11,16 +11,16 @@ BBMV.utils = {
   _transitionSince: 0,
   _screenNameToId: {
     loading: 'screen-loading',
-    profile: 'screen-profiles',
-    profiles: 'screen-profiles',
+    profile: 'screen-profile',
+    profiles: 'screen-profile',
     menu: 'screen-menu',
-    patch: 'screen-camera',
-    camera: 'screen-camera',
+    patch: 'screen-patch',
+    camera: 'screen-patch',
     game: 'screen-game',
     complete: 'screen-complete',
     badges: 'screen-badges',
-    report: 'screen-report',
-    reports: 'screen-report',
+    report: 'screen-reports',
+    reports: 'screen-reports',
     settings: 'screen-settings'
   },
 
@@ -157,16 +157,23 @@ BBMV.utils = {
 
     try {
       BBMV.utils.setTransitioning(true);
-      document.querySelectorAll('.screen').forEach((s) => {
-        s.classList.remove('active', 'slide-in');
-        s.setAttribute('aria-hidden', 'true');
-        if (typeof s.setAttribute === 'function') s.setAttribute('hidden', '');
+      const screens = [...document.querySelectorAll('.screen')];
+      screens.forEach((screen) => {
+        screen.hidden = true;
+        screen.classList.remove('active', 'slide-in');
+        screen.style.display = 'none';
+        screen.style.visibility = 'hidden';
+        screen.style.opacity = '0';
+        screen.style.pointerEvents = 'none';
+        screen.setAttribute('aria-hidden', 'true');
       });
 
-      if (typeof target.removeAttribute === 'function') target.removeAttribute('hidden');
-      if (target.classList?.remove) target.classList.remove('hidden');
-      if (target.style?.removeProperty) target.style.removeProperty('display');
+      target.hidden = false;
       target.classList.add('active');
+      target.style.display = '';
+      target.style.visibility = '';
+      target.style.opacity = '';
+      target.style.pointerEvents = '';
       target.setAttribute('aria-hidden', 'false');
       BBMV.utils._lastScreenId = target.id || mappedId;
       BBMV.utils._lastScreenName = screenName;
@@ -187,6 +194,21 @@ BBMV.utils = {
         if (!target.classList.contains('active')) target.classList.add('active');
         BBMV.utils.setTransitioning(false);
       }, 900);
+
+      ['loading', '.modal', '.overlay', '.splash', '.app-shell'].forEach((selector) => {
+        const list = selector.startsWith('.') ? document.querySelectorAll(selector) : [BBMV.utils.$(selector)];
+        list.forEach((el) => {
+          if (!el) return;
+          const isVisibleModal = el.classList.contains('modal') && !el.classList.contains('hidden');
+          if (isVisibleModal) return;
+          if (el.id === 'loading' && target.id === 'screen-loading') return;
+          el.hidden = true;
+          if (el.classList?.contains('hidden') === false) el.classList.add('hidden');
+          el.style.display = 'none';
+          el.style.visibility = 'hidden';
+          el.style.opacity = '0';
+        });
+      });
 
       const getComputed = typeof window.getComputedStyle === 'function'
         ? window.getComputedStyle.bind(window)
@@ -217,6 +239,19 @@ BBMV.utils = {
           body: { display: bodyComputed.display, visibility: bodyComputed.visibility, opacity: bodyComputed.opacity }
         });
       }
+      const centerX = Math.floor(window.innerWidth / 2);
+      const centerY = Math.floor(window.innerHeight / 2);
+      const centerEl = document.elementFromPoint(centerX, centerY);
+      const visibleScreens = screens
+        .filter((s) => !s.hidden || getComputed(s).display !== 'none')
+        .map((s) => s.id);
+      const activeScreens = screens.filter((s) => s.classList.contains('active')).map((s) => s.id);
+      const notHiddenScreens = screens.filter((s) => !s.hidden).map((s) => s.id);
+      console.log('[BBMV] screen count', screens.length);
+      console.log('[BBMV] active screens', activeScreens);
+      console.log('[BBMV] non-hidden screens', notHiddenScreens);
+      console.log('[BBMV] visible screens', visibleScreens);
+      console.log('[BBMV] elementFromPoint center', centerEl?.id || centerEl?.className || centerEl?.tagName || 'null');
       return true;
     } catch (err) {
       BBMV.utils.setTransitioning(false);
@@ -284,13 +319,13 @@ BBMV.utils = {
       `;
       app.appendChild(fallback);
       fallback.querySelector('#btn-fallback-profiles')?.addEventListener('pointerdown', () => {
-        const profiles = BBMV.utils.$('screen-profiles');
+        const profiles = BBMV.utils.$('screen-profile');
         fallback.classList.remove('active');
         fallback.setAttribute('aria-hidden', 'true');
         if (profiles) {
           profiles.classList.add('active');
           profiles.setAttribute('aria-hidden', 'false');
-          BBMV.utils._lastScreenId = 'screen-profiles';
+          BBMV.utils._lastScreenId = 'screen-profile';
         }
       });
     } else {

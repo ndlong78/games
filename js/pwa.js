@@ -4,8 +4,9 @@
 
 BBMV.pwa = (() => {
   let deferredPrompt = null;
-  const APP_VERSION = '2026.04.27-1';
+  const APP_VERSION = '2026.04.27-2';
   const SW_VERSION_KEY = 'bbmv_sw_version';
+  const DEBUG_SW_BYPASS_CACHE = true;
 
   const clearOldCachesAndWorkers = async () => {
     if (!('serviceWorker' in navigator)) return;
@@ -40,7 +41,18 @@ BBMV.pwa = (() => {
           scope: './',
           updateViaCache: 'none'
         });
-        reg.update().catch(() => {});
+        if (DEBUG_SW_BYPASS_CACHE && navigator.serviceWorker.controller) {
+          const ctrlUrl = navigator.serviceWorker.controller.scriptURL || '';
+          if (!ctrlUrl.includes(APP_VERSION)) {
+            console.warn('[BBMV] Old SW controller detected, forcing update:', ctrlUrl);
+            await reg.update().catch(() => {});
+          }
+        } else {
+          reg.update().catch(() => {});
+        }
+        if (DEBUG_SW_BYPASS_CACHE && reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
         console.log('[BBMV] Service Worker registered:', APP_VERSION);
       } catch (err) {
         console.error('[BBMV] Service Worker register failed:', err);
