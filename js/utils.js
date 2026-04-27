@@ -145,7 +145,13 @@ BBMV.utils = {
 
   showScreen: (nameOrId, options = {}) => {
     const { fatalOnMissing = false } = options;
-    const { raw, mappedId, target, screenName } = BBMV.utils.resolveScreenTarget(nameOrId);
+    let { raw, mappedId, target, screenName } = BBMV.utils.resolveScreenTarget(nameOrId);
+    if (screenName === 'profile') {
+      const currentProfile = BBMV.profile?.getCurrent?.();
+      if (currentProfile?.id === 'default-child') {
+        ({ raw, mappedId, target, screenName } = BBMV.utils.resolveScreenTarget('menu'));
+      }
+    }
     if (!target) {
       const error = new Error(`Screen target not found for "${raw}" -> "${mappedId}"`);
       console.error('[BBMV] showScreen target missing:', error.message);

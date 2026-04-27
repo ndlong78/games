@@ -150,6 +150,17 @@ html, body {
 .modal-actions .btn-primary, .modal-actions .btn-secondary { flex: 1; }
 
 #screen-menu { background: transparent; position: relative; }
+body.screen-menu #screen-profile,
+body.screen-menu #modal-profile,
+body.screen-menu #add-profile-form,
+body.screen-menu #profile-modal,
+body.screen-menu #profile-overlay,
+body.screen-menu .profile-overlay {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 .menu-bg-canvas-wrap { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 #menu-canvas { width: 100%; height: 100%; display: block; }
 .menu-ui { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; padding: 16px 20px; padding-top: calc(var(--safe-top) + 16px); }

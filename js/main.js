@@ -66,10 +66,11 @@ const runStep = (name, fn, options = {}) => {
 const bootstrapDefaultProfileAndMenu = () => {
   try {
     const profile = BBMV.profile.ensureDefaultProfile();
-    console.log('[BBMV] Default profile loaded');
+    console.log('[BBMV] Default profile ready');
+    BBMV.profile.hideProfileFlowUI?.();
     const shown = BBMV.utils.showScreen('menu');
     if (!shown) throw new Error('Unable to show screen-menu');
-    console.log('[BBMV] Go directly to menu');
+    console.log('[BBMV] Menu shown');
     const rendered = BBMV.profile.renderMenuScreen();
     if (!rendered) throw new Error('Unable to render menu screen');
     setTimeout(() => {

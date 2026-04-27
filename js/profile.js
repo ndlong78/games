@@ -463,6 +463,31 @@ BBMV.profile = (() => {
     return setCurrent(id);
   };
 
+  const hideProfileFlowUI = () => {
+    const selectors = [
+      '#screen-profile',
+      '#modal-profile',
+      '#add-profile-form',
+      '#profile-modal',
+      '#profile-overlay',
+      '.profile-overlay'
+    ];
+    selectors.forEach((selector) => {
+      document.querySelectorAll(selector).forEach((el) => {
+        if (!el) return;
+        el.hidden = true;
+        el.classList?.add('hidden');
+        el.classList?.remove('active');
+        el.style.display = 'none';
+        el.style.visibility = 'hidden';
+        el.style.opacity = '0';
+        el.style.pointerEvents = 'none';
+        el.setAttribute('aria-hidden', 'true');
+      });
+    });
+    console.log('[BBMV] Profile screen hidden');
+  };
+
   const clearActiveProfile = () => {
     currentProfileId = null;
     BBMV.utils.lsDel(ACTIVE_PROFILE_KEY);
@@ -499,6 +524,6 @@ BBMV.profile = (() => {
     getAll, getById, getCurrent, setCurrent, create, update, remove,
     selectProfile, restoreActiveProfile, clearActiveProfile, getActiveProfileKey,
     renderProfilesScreen, renderMenuScreen, openModal, closeModal,
-    bindEvents, ensureDefaultProfile, AVATARS, EYE_LABEL
+    bindEvents, ensureDefaultProfile, hideProfileFlowUI, AVATARS, EYE_LABEL
   };
 })();
