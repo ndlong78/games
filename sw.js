@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'ffv-v2026-04-27-1';
+const CACHE_VERSION = 'ffv-v2026-04-27-120s-2';
 const PRECACHE = [
   './',
   './index.html',

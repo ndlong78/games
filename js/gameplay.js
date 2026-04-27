@@ -54,6 +54,8 @@ window.FFV_GAME = (() => {
     lastSliceMs = 0;
     lastFrame = performance.now();
     window.FFV_INPUT.setEnabled(true);
+    // Đồng bộ HUD ngay khi bắt đầu để luôn hiển thị đúng 120s từ nguồn cấu hình duy nhất.
+    window.FFV_SCREENS.updateHUD(state);
     cancelAnimationFrame(loopRef);
     loopRef = requestAnimationFrame(loop);
   }
