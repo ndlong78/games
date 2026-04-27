@@ -15,6 +15,15 @@ BBMV.profile = (() => {
   let skipConfirmCount = 0;
   let lastLoadError = null;
 
+  const buildDefaultProfile = () => ({
+    id: BBMV.utils.uuid(),
+    name: 'Bé mới',
+    avatar: AVATARS[0],
+    age: 5,
+    eye: 'right',
+    createdAt: BBMV.utils.now()
+  });
+
   const normalizeProfile = (raw, idx = 0) => {
     if (!raw || typeof raw !== 'object') return null;
 
@@ -48,18 +57,21 @@ BBMV.profile = (() => {
       const shouldMigrate = !Array.isArray(raw) || normalized.length !== source.length ||
         JSON.stringify(source) !== JSON.stringify(normalized);
       if (shouldMigrate) {
-        BBMV.utils.lsSet(LS_KEY, normalized);
+        const safeList = normalized.length > 0 ? normalized : [buildDefaultProfile()];
+        BBMV.utils.lsSet(LS_KEY, safeList);
         if (source.length > 0 && normalized.length === 0) {
           lastLoadError = 'invalid_profiles_shape';
-          console.error('[BBMV][profile] Hồ sơ bị lỗi cấu trúc, đã reset về mặc định an toàn.');
+          console.error('[BBMV][profile] Hồ sơ bị lỗi cấu trúc, đã reset về profile mặc định an toàn.');
         }
+        return safeList;
       }
       return normalized;
     } catch (err) {
       lastLoadError = 'profile_load_failed';
       console.error('[BBMV][profile] Lỗi khi tải hồ sơ:', err);
-      BBMV.utils.lsSet(LS_KEY, []);
-      return [];
+      const fallback = [buildDefaultProfile()];
+      BBMV.utils.lsSet(LS_KEY, fallback);
+      return fallback;
     }
   };
 
@@ -147,6 +159,7 @@ BBMV.profile = (() => {
           return;
         }
         try {
+          console.log('[BBMV] profile.select', p.id);
           const rendered = renderMenuScreen();
           if (!rendered) throw new Error('renderMenuScreen() failed');
           const shown = BBMV.utils.showScreen('screen-menu');

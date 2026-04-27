@@ -65,7 +65,6 @@ BBMV.game = (() => {
     raf = requestAnimationFrame(loop);
 
     BBMV.audio.init();
-    BBMV.audio.resume();
     BBMV.audio.startMusic();
     BBMV.audio.speak('Theo bướm nào! Bắt nó đi con!', true);
   };

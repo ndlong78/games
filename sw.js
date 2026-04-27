@@ -31,9 +31,12 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return Promise.allSettled(
-        ASSETS.map(url => cache.add(url).catch(err => console.warn('[SW] Failed to cache:', url, err)))
+        ASSETS.map(url => cache.add(url).catch(err => console.warn('[BBMV][SW] Failed to cache:', url, err)))
       );
-    }).then(() => self.skipWaiting())
+    }).then(() => {
+      console.log('[BBMV][SW] Install completed');
+      return self.skipWaiting();
+    })
   );
 });
 
@@ -41,7 +44,10 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    ).then(() => {
+      console.log('[BBMV][SW] Activate completed');
+      return self.clients.claim();
+    })
   );
 });
 
