@@ -39,6 +39,14 @@ html, body {
   min-width: 22%;
   text-align: center;
 }
+.hud-stop {
+  pointer-events: auto;
+  min-width: auto;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: clamp(16px, 3.8vw, 22px);
+  align-self: center;
+}
 .screen { display: none; width: 100%; height: 100%; }
 .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 #screen-menu, #screen-result, #screen-parent {

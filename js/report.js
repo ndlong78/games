@@ -32,8 +32,9 @@ window.FFV_REPORT = (() => {
     }
     el.innerHTML = rows.map((r, idx) => `<div style="padding:6px 0;border-bottom:1px dashed #bdd4ec;">
       <b>#${rows.length - idx}</b> — ${new Date(r.date).toLocaleString('vi-VN')}<br>
-      Điểm: ${r.score} | Chính xác: ${r.accuracy}% | Bỏ lỡ: ${r.missed}<br>
-      Combo max: ${r.maxCombo} | Level: ${r.level} | Thời lượng: ${r.durationSec}s
+      Phiên chơi: 2 phút (120 giây) | Điểm: ${r.score} | Chính xác: ${r.accuracy}%<br>
+      Cắt: ${r.fruitsSliced ?? 0} | Bỏ lỡ: ${r.fruitsMissed ?? r.missed ?? 0} | Combo max: ${r.maxCombo}<br>
+      Mức khó cuối: Giai đoạn ${r.finalDifficultyStage ?? 1}/4 | Thời lượng: ${r.durationSeconds ?? r.durationSec ?? 120}s
     </div>`).join('');
   }
 
@@ -49,7 +50,7 @@ window.FFV_REPORT = (() => {
     doc.text('Bao cao Hoa Qua Bay Mat Vui', 12, 12);
     rows.slice(0, 20).forEach((r, i) => {
       doc.setFontSize(10);
-      doc.text(`${i + 1}) ${r.date} | score ${r.score} | acc ${r.accuracy}% | lv ${r.level}`, 12, 22 + i * 8);
+      doc.text(`${i + 1}) ${r.date} | score ${r.score} | acc ${r.accuracy}% | stage ${r.finalDifficultyStage ?? 1}`, 12, 22 + i * 8);
     });
     doc.save('hoa-qua-bay-report.pdf');
   }
