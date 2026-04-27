@@ -1,175 +1,97 @@
-// ============================================================
-// main.js — Khởi tạo app, routing các màn hình
-// ============================================================
+(() => {
+  const cfg = window.FFV_CONFIG;
+  const $ = (id) => document.getElementById(id);
+  let audioUnlocked = false;
 
-window.BBMV = window.BBMV || {};
+  function init() {
+    const canvas = $('game-canvas');
+    window.FFV_GAME.init(canvas);
+    bindEvents();
+    initPWA();
+    restoreLevel();
+    window.FFV_SCREENS.show('screen-menu');
+  }
 
-const installDiagnostics = () => {
-  window.addEventListener('error', (e) => {
-    console.error('[BBMV] Runtime error:', e.error || e.message || e);
-    BBMV.utils.showCrashOverlay(e.message || String(e.error || 'Unknown runtime error'));
-    BBMV.utils.showFallbackScreen('window.error');
-  });
+  function bindEvents() {
+    $('btn-start').addEventListener('click', () => startGame(false));
+    $('btn-replay').addEventListener('click', () => startGame(false));
+    $('btn-next').addEventListener('click', () => startGame(true));
+    $('btn-menu').addEventListener('click', () => window.FFV_SCREENS.show('screen-menu'));
 
-  window.addEventListener('unhandledrejection', (e) => {
-    const reason = e.reason?.message || String(e.reason || 'Unhandled promise rejection');
-    console.error('[BBMV] Unhandled rejection:', e.reason || e);
-    BBMV.utils.showCrashOverlay(reason);
-    BBMV.utils.showFallbackScreen('unhandledrejection');
-  });
+    $('btn-parent').addEventListener('click', () => window.FFV_SCREENS.show('screen-parent'));
+    $('btn-parent-back').addEventListener('click', () => window.FFV_SCREENS.show('screen-menu'));
+    $('btn-unlock').addEventListener('click', unlockParent);
+    $('btn-change-pin').addEventListener('click', changePin);
+    $('btn-export-pdf').addEventListener('click', () => window.FFV_REPORT.exportPDF());
 
-  setInterval(() => {
-    if (BBMV.utils._transitioning) return;
-    try {
-      BBMV.utils.ensureVisibleScreen();
-    } catch (err) {
-      console.error('[BBMV] Screen watchdog failed:', err);
+    document.addEventListener('pointerdown', unlockAudio, { passive: true });
+  }
+
+  function startGame(nextLevel) {
+    unlockAudio();
+    if (nextLevel) {
+      const current = Number(localStorage.getItem(cfg.STORAGE_KEYS.level) || '1');
+      localStorage.setItem(cfg.STORAGE_KEYS.level, String(Math.min(5, current + 1)));
     }
-  }, 3000);
-};
+    const level = Number(localStorage.getItem(cfg.STORAGE_KEYS.level) || '1');
+    const banner = $('goal-banner');
+    banner.classList.remove('hidden');
+    banner.textContent = cfg.LEVELS[level - 1].redOnly ? '🎯 Level 5: Chỉ cắt quả màu đỏ' : `🎮 ${cfg.LEVELS[level - 1].label}`;
+    setTimeout(() => banner.classList.add('hidden'), 1200);
+    window.FFV_SCREENS.show('screen-game');
+    window.FFV_GAME.start(level);
+  }
 
-const installAudioUnlock = () => {
-  const unlock = async () => {
-    if (BBMV.audio.hasUserGesture?.()) return;
-    BBMV.audio.markUserGesture?.();
-    try {
-      const ok = await BBMV.audio.resume();
-      if (!ok) return;
-      console.log('[BBMV] Audio unlocked by real user gesture.');
-    } catch (err) {
-      console.warn('[BBMV] Audio unlock failed:', err);
+  function unlockParent() {
+    const pin = $('parent-pin').value.trim();
+    if (pin !== window.FFV_REPORT.getPin()) {
+      alert('Sai mã phụ huynh.');
       return;
     }
-    document.removeEventListener('pointerdown', unlock, true);
-    document.removeEventListener('touchstart', unlock, true);
-    document.removeEventListener('keydown', unlock, true);
-  };
-
-  document.addEventListener('pointerdown', unlock, true);
-  document.addEventListener('touchstart', unlock, true);
-  document.addEventListener('keydown', unlock, true);
-};
-
-const runStep = (name, fn, options = {}) => {
-  const { fatal = false } = options;
-  try {
-    console.log(`[BBMV] Step: ${name}`);
-    return fn();
-  } catch (err) {
-    console.error(`[BBMV] Step failed: ${name}`, err);
-    if (fatal) throw err;
-    BBMV.utils.showFallbackScreen(name);
-    return null;
+    $('parent-lock').classList.add('hidden');
+    $('parent-report').classList.remove('hidden');
+    window.FFV_REPORT.render($('report-list'));
   }
-};
 
-const bootstrapDefaultProfileAndMenu = () => {
-  try {
-    const profile = BBMV.profile.ensureDefaultProfile();
-    console.log('[BBMV] Default profile ready');
-    BBMV.profile.hideProfileFlowUI?.();
-    const shown = BBMV.utils.showScreen('menu');
-    if (!shown) throw new Error('Unable to show screen-menu');
-    console.log('[BBMV] Menu shown');
-    const rendered = BBMV.profile.renderMenuScreen();
-    if (!rendered) throw new Error('Unable to render menu screen');
-    setTimeout(() => {
-      BBMV.audio.speak(`Chào ${profile?.name || 'bé'}! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!`);
-    }, 400);
-  } catch (err) {
-    console.error('[BBMV] bootstrapDefaultProfileAndMenu failed:', err);
-    BBMV.utils.showFallbackScreen('default-profile-bootstrap');
-  }
-};
-
-const initApp = () => {
-  console.log('[BBMV] initApp start');
-  installDiagnostics();
-  installAudioUnlock();
-
-  const bar = BBMV.utils.$('loading-bar');
-  const txt = BBMV.utils.$('loading-text');
-
-  const setProgress = (pct, msg) => {
-    if (bar) bar.style.width = `${pct}%`;
-    if (txt) txt.textContent = msg;
-  };
-
-  BBMV.utils.showScreen('loading');
-  setProgress(10, 'Đang tải font chữ...');
-
-  runStep('audio.preloadVoices', () => BBMV.audio.preloadVoices());
-  setProgress(30, 'Đang chuẩn bị âm thanh...');
-
-  const s = runStep('settings.get', () => BBMV.settings.get()) || {};
-  runStep('settings.apply', () => BBMV.settings.applySettings(s));
-  setProgress(50, 'Đang tải cài đặt...');
-
-  runStep('pwa.register', () => BBMV.pwa.register());
-  setProgress(70, 'Đang khởi tạo game...');
-
-  runStep('game.init', () => BBMV.game.init(), { fatal: true });
-  setProgress(90, 'Đang khởi động...');
-
-  runStep('bindAllEvents', () => bindAllEvents(), { fatal: true });
-  setProgress(100, 'Sẵn sàng!');
-
-  setTimeout(() => {
-    bootstrapDefaultProfileAndMenu();
-  }, 600);
-};
-
-const bindAllEvents = () => {
-  BBMV.profile.bindEvents();
-  BBMV.gamification.bindEvents();
-  BBMV.camera.bindEvents();
-  BBMV.report.bindEvents();
-  BBMV.settings.bindEvents();
-  BBMV.pwa.bindEvents();
-
-  BBMV.utils.$('btn-play')?.addEventListener('pointerdown', () => {
-    BBMV.audio.sfx.button();
-    const profile = BBMV.profile.getCurrent() || BBMV.profile.ensureDefaultProfile();
-    if (!profile) {
-      BBMV.utils.showToast('Không thể khởi tạo hồ sơ mặc định!');
+  function changePin() {
+    const next = prompt('Nhập mã mới 4 số:');
+    if (!/^\d{4}$/.test(next || '')) {
+      alert('Mã phải gồm đúng 4 chữ số.');
       return;
     }
-    BBMV.utils.showScreen('patch');
-    BBMV.camera.initScreen(profile);
-  });
+    window.FFV_REPORT.setPin(next);
+    alert('Đã đổi mã phụ huynh.');
+  }
 
-  document.addEventListener('visibilitychange', () => {
-    const menuScreen = BBMV.utils.$('screen-menu');
-    if (document.hidden) {
-      BBMV.background.stopMenuCanvas();
-    } else if (menuScreen?.classList.contains('active')) {
-      BBMV.background.initMenuCanvas();
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    window.FFV_AUDIO_CTX = window.FFV_AUDIO_CTX || new Ctx();
+    window.FFV_AUDIO_CTX.resume?.();
+    audioUnlocked = true;
+  }
+
+  function initPWA() {
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+
+    const isDebug = new URLSearchParams(location.search).get('debug') === '1';
+    const reset = $('btn-reset-cache');
+    if (isDebug) {
+      reset.classList.remove('hidden');
+      reset.addEventListener('click', async () => {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+        localStorage.clear();
+        alert('Đã reset cache + localStorage');
+      });
     }
-  });
+  }
 
-  const menuObs = new MutationObserver(() => {
-    const menuScreen = BBMV.utils.$('screen-menu');
-    if (menuScreen?.classList.contains('active')) BBMV.background.initMenuCanvas();
-    else BBMV.background.stopMenuCanvas();
-  });
-  const menuScreen = BBMV.utils.$('screen-menu');
-  if (menuScreen) menuObs.observe(menuScreen, { attributes: true, attributeFilter: ['class'] });
+  function restoreLevel() {
+    if (!localStorage.getItem(cfg.STORAGE_KEYS.level)) localStorage.setItem(cfg.STORAGE_KEYS.level, '1');
+    $('menu-level').textContent = localStorage.getItem(cfg.STORAGE_KEYS.level);
+  }
 
-  window.addEventListener('resize', BBMV.utils.debounce(() => {
-    const gameScreen = BBMV.utils.$('screen-game');
-    if (gameScreen?.classList.contains('active')) {
-      const canvas = BBMV.utils.$('game-canvas');
-      if (canvas) BBMV.utils.resizeCanvas(canvas);
-    }
-  }, 200));
-
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
-  document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
-  document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
-};
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
-}
+  document.addEventListener('DOMContentLoaded', init);
+})();

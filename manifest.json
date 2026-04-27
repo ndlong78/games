@@ -1,12 +1,11 @@
 {
-  "name": "Bướm Bay Mắt Vui",
-  "short_name": "Bướm Bay",
-  "description": "Ứng dụng hỗ trợ tập luyện nhược thị cho trẻ 4–7 tuổi",
-  "start_url": "./index.html",
+  "name": "Hoa Quả Bay Mắt Vui",
+  "short_name": "HoaQuảBay",
+  "start_url": "./",
   "display": "standalone",
-  "orientation": "any",
-  "background_color": "#BDEAF5",
-  "theme_color": "#BDEAF5",
+  "background_color": "#7ecbff",
+  "theme_color": "#7ecbff",
+  "orientation": "portrait-primary",
   "lang": "vi",
   "icons": [
     {
@@ -21,6 +20,5 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "categories": ["education", "games", "health"]
+  ]
 }

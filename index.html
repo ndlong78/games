@@ -2,148 +2,80 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <!-- iOS Safari full-screen support -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Bướm Bay Mắt Vui" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#BDEAF5" />
-  <title>🦋 Bướm Bay Mắt Vui</title>
-  <meta name="description" content="Game tập luyện nhược thị cho trẻ 4–7 tuổi. Vui nhộn, dễ thương, theo dõi tiến bộ cho bác sĩ." />
-  <meta property="og:title" content="Bướm Bay Mắt Vui" />
-  <meta property="og:description" content="Game tập luyện nhược thị cho trẻ 4–7 tuổi" />
-  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#7ecbff" />
+  <title>Hoa Quả Bay Mắt Vui</title>
+  <meta name="description" content="Game chém hoa quả dễ thương cho bé 4-8 tuổi, hỗ trợ tập trung thị giác và phản xạ tay-mắt." />
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" sizes="192x192" href="./assets/icons/icon-192.png" />
-  <link rel="apple-touch-icon" sizes="512x512" href="./assets/icons/icon-512.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/png" href="./assets/icons/icon-192.png" />
   <link rel="stylesheet" href="./css/styles.css" />
 </head>
 <body>
   <div id="app">
-    <div id="screen-loading" class="screen active" data-screen="loading">
-      <div class="loading-content">
-        <div class="loading-butterfly">🦋</div>
-        <h1 class="loading-title">Bướm Bay Mắt Vui</h1>
-        <div class="loading-bar-wrap"><div class="loading-bar" id="loading-bar"></div></div>
-        <p class="loading-text" id="loading-text">Đang tải...</p>
-      </div>
-    </div>
+    <header class="hud" id="hud">
+      <div>⭐ <span id="hud-score">0</span></div>
+      <div>⏱ <span id="hud-time">60</span>s</div>
+      <div>❤️ <span id="hud-hearts">3</span></div>
+      <div>🔥 <span id="hud-combo">x1</span></div>
+    </header>
 
-    <div id="screen-profile" class="screen" data-screen="profile">
-      <div class="screen-header">
-        <h2 class="screen-title">Chọn hồ sơ của bé</h2>
-        <button class="btn-icon" id="btn-settings" title="Cài đặt">⚙️</button>
+    <main id="screen-menu" class="screen active">
+      <h1>🍉 Hoa Quả Bay Mắt Vui</h1>
+      <p>Vuốt tay để cắt trái cây dễ thương nhé!</p>
+      <div class="menu-actions">
+        <button id="btn-start">Chơi ngay</button>
+        <button id="btn-parent">Chế độ phụ huynh</button>
       </div>
-      <div class="profiles-grid" id="profiles-grid"></div>
-      <button class="btn-add-profile" id="btn-add-profile"><span class="btn-icon-big">➕</span><span>Thêm hồ sơ mới</span></button>
-    </div>
+      <p class="note">Level: <span id="menu-level">1</span>/5</p>
+    </main>
 
-    <div id="modal-profile" class="modal hidden">
-      <div class="modal-box">
-        <h3 class="modal-title" id="modal-profile-title">Hồ sơ mới</h3>
-        <div class="avatar-picker" id="avatar-picker"></div>
-        <div class="form-group"><label class="form-label">Tên bé</label><input type="text" id="input-name" class="form-input" placeholder="Ví dụ: Minh Anh" maxlength="20" /></div>
-        <div class="form-group"><label class="form-label">Tuổi</label><div class="age-selector" id="age-selector"></div></div>
-        <div class="form-group">
-          <label class="form-label">Mắt yếu</label>
-          <div class="eye-selector">
-            <button class="btn-eye" data-eye="left" id="eye-left">👁️ Mắt trái</button>
-            <button class="btn-eye" data-eye="right" id="eye-right">👁️ Mắt phải</button>
-            <button class="btn-eye" data-eye="both" id="eye-both">👁️👁️ Cả hai</button>
-          </div>
-        </div>
-        <div class="modal-actions"><button class="btn-secondary" id="btn-cancel-profile">Hủy</button><button class="btn-primary" id="btn-save-profile">Lưu</button></div>
-      </div>
-    </div>
-
-    <div id="modal-change-pin" class="modal hidden">
-      <div class="modal-box modal-box-narrow">
-        <h3 class="modal-title">Đổi mật khẩu báo cáo</h3>
-        <p class="modal-subtitle">Nhập PIN mới gồm 4 chữ số để mở phần báo cáo.</p>
-        <div class="form-group">
-          <label class="form-label">PIN mới</label>
-          <input type="password" id="input-new-pin" class="form-input" inputmode="numeric" maxlength="4" placeholder="••••" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nhập lại PIN mới</label>
-          <input type="password" id="input-confirm-pin" class="form-input" inputmode="numeric" maxlength="4" placeholder="••••" />
-        </div>
-        <div class="modal-actions">
-          <button class="btn-secondary" id="btn-cancel-pin">Hủy</button>
-          <button class="btn-primary" id="btn-save-pin">Lưu PIN</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="screen-menu" class="screen" data-screen="menu">
-      <div class="menu-bg-canvas-wrap"><canvas id="menu-canvas"></canvas></div>
-      <div class="menu-ui">
-        <div class="menu-top">
-          <div class="menu-profile-chip" id="menu-profile-chip"><span class="chip-avatar" id="chip-avatar">🐣</span><span class="chip-name" id="chip-name">Bé yêu</span></div>
-          <div class="menu-streak" id="menu-streak">🔥 0 ngày</div>
-          <button class="btn-icon" id="btn-menu-report">👨‍⚕️</button>
-        </div>
-        <div class="menu-center"><h1 class="game-title">Bướm Bay<br/>Mắt Vui</h1><div class="menu-butterflies-deco" id="menu-deco">🦋🦋🦋</div></div>
-        <div class="menu-bottom"><button class="btn-play" id="btn-play"><span class="btn-play-icon">🎮</span><span>Chơi ngay!</span></button><div class="menu-sub-buttons"><button class="btn-sub" id="btn-badges">🏆 Huy hiệu</button><button class="btn-sub" id="btn-switch-profile">👦 Đổi hồ sơ</button></div></div>
-      </div>
-    </div>
-
-    <div id="screen-patch" class="screen" data-screen="patch">
-      <div class="camera-container">
-        <div class="camera-header"><h2 class="camera-title">Kiểm tra che mắt</h2></div>
-        <div class="camera-body">
-          <div class="camera-illustration" id="camera-illustration"><div class="illus-face"><div class="illus-eye covered" id="illus-eye-covered">🩹</div><div class="illus-eye open" id="illus-eye-open">👁️</div><div class="illus-mouth">😊</div></div></div>
-          <div class="camera-instruction" id="camera-instruction"><p id="camera-step-text">Con hãy che mắt khỏe bằng miếng dán nhé! 🩹</p></div>
-          <div class="camera-preview-wrap" id="camera-preview-wrap"><video id="camera-video" autoplay playsinline muted></video><div class="camera-countdown" id="camera-countdown"></div></div>
-        </div>
-        <div class="camera-actions"><button class="btn-confirm-camera" id="btn-confirm-camera">✅ Con đã che mắt — Bắt đầu!</button><button class="btn-skip-camera" id="btn-skip-camera">⏭️ Bỏ qua (Phụ huynh)</button></div>
-      </div>
-    </div>
-
-    <div id="screen-game" class="screen" data-screen="game">
+    <section id="screen-game" class="screen">
       <canvas id="game-canvas"></canvas>
-      <div class="game-hud" id="game-hud"><div class="hud-left"><div class="hud-stars" id="hud-stars">⭐ 0</div><div class="hud-wave" id="hud-wave">Màn 1</div></div><div class="hud-center"><div class="hud-progress-bar"><div class="hud-progress-fill" id="hud-progress"></div></div></div><div class="hud-right"><div class="hud-timer" id="hud-timer">⏱ 0s</div><button class="btn-pause" id="btn-pause">⏸</button></div></div>
-      <div class="combo-text hidden" id="combo-text">🎉 Tuyệt vời!</div>
-      <div class="pause-overlay hidden" id="pause-overlay"><div class="pause-box"><h3>⏸ Tạm dừng</h3><button class="btn-primary" id="btn-resume">▶️ Tiếp tục</button><button class="btn-secondary" id="btn-restart">🔄 Chơi lại</button><button class="btn-secondary" id="btn-to-menu">🏠 Về menu</button></div></div>
-    </div>
+      <div id="goal-banner" class="goal-banner hidden"></div>
+    </section>
 
-    <div id="screen-complete" class="screen" data-screen="complete">
-      <div class="complete-container"><div class="complete-stars" id="complete-stars"></div><h2 class="complete-title" id="complete-title">Hoàn thành!</h2><div class="complete-stats" id="complete-stats"></div><div class="new-badge" id="new-badge" style="display:none"></div><div class="complete-actions"><button class="btn-primary" id="btn-next-level">Màn tiếp theo ▶️</button><button class="btn-secondary" id="btn-replay">🔄 Chơi lại</button><button class="btn-secondary" id="btn-complete-menu">🏠 Về menu</button></div></div>
-    </div>
+    <section id="screen-result" class="screen">
+      <h2>Kết quả</h2>
+      <div id="result-stars" class="stars"></div>
+      <div id="result-stats"></div>
+      <div class="menu-actions">
+        <button id="btn-replay">Chơi lại</button>
+        <button id="btn-next">Màn tiếp</button>
+        <button id="btn-menu">Về menu</button>
+      </div>
+    </section>
 
-    <div id="screen-badges" class="screen" data-screen="badges">
-      <div class="screen-header"><button class="btn-back" id="btn-badges-back">← Quay lại</button><h2 class="screen-title">🏆 Huy hiệu của bé</h2></div>
-      <div class="badges-grid" id="badges-grid"></div>
-    </div>
+    <section id="screen-parent" class="screen">
+      <h2>👨‍👩‍👧 Chế độ phụ huynh</h2>
+      <div id="parent-lock">
+        <p>Nhập mã phụ huynh (mặc định 1234)</p>
+        <input id="parent-pin" type="password" maxlength="4" inputmode="numeric" placeholder="••••" />
+        <button id="btn-unlock">Mở báo cáo</button>
+      </div>
+      <div id="parent-report" class="hidden">
+        <div class="menu-actions">
+          <button id="btn-change-pin">Đổi mã</button>
+          <button id="btn-export-pdf">Xuất PDF</button>
+        </div>
+        <div id="report-list"></div>
+      </div>
+      <button id="btn-parent-back">← Quay lại</button>
+    </section>
 
-    <div id="screen-reports" class="screen" data-screen="reports">
-      <div class="screen-header"><button class="btn-back" id="btn-report-back">← Quay lại</button><h2 class="screen-title">👨‍⚕️ Báo cáo tiến bộ</h2></div>
-      <div id="report-locked" class="report-locked"><div class="lock-icon">🔒</div><p>Nhập mật khẩu phụ huynh</p><div class="pin-display" id="pin-display"><span class="pin-dot" id="d0"></span><span class="pin-dot" id="d1"></span><span class="pin-dot" id="d2"></span><span class="pin-dot" id="d3"></span></div><div class="pin-pad" id="pin-pad"></div></div>
-      <div id="report-content" class="hidden"><div class="report-tabs" id="report-tabs"><button class="tab-btn active" data-tab="overview">Tổng quan</button><button class="tab-btn" data-tab="chart7">7 ngày</button><button class="tab-btn" data-tab="chart30">30 ngày</button><button class="tab-btn" data-tab="compliance">Che mắt</button><button class="tab-btn" data-tab="history">Lịch sử</button></div><div class="report-body" id="report-body"></div><div class="report-actions"><button class="btn-primary" id="btn-export-pdf">📥 Xuất PDF</button><button class="btn-secondary" id="btn-backup">💾 Sao lưu</button><button class="btn-secondary" id="btn-restore">📂 Nhập lại</button><input type="file" id="input-restore" accept=".json" style="display:none" /></div></div>
-    </div>
-
-    <div id="screen-settings" class="screen" data-screen="settings"><div class="screen-header"><button class="btn-back" id="btn-settings-back">← Quay lại</button><h2 class="screen-title">⚙️ Cài đặt</h2></div><div class="settings-body" id="settings-body"></div></div>
-
-    <div id="toast" class="toast hidden"></div>
-    <div id="install-banner" class="install-banner hidden"><span>📱 Cài app về máy để dùng offline!</span><button id="btn-install">Cài ngay</button><button id="btn-install-dismiss">✕</button></div>
+    <button id="btn-reset-cache" class="debug hidden">Reset Cache</button>
   </div>
 
-  <script src="./js/utils.js"></script>
-  <script src="./js/audio.js"></script>
-  <script src="./js/profile.js"></script>
-  <script src="./js/gamification.js"></script>
-  <script src="./js/settings.js"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/layout.js"></script>
   <script src="./js/background.js"></script>
-  <script src="./js/butterfly.js"></script>
-  <script src="./js/camera.js"></script>
+  <script src="./js/input.js"></script>
+  <script src="./js/gameplay.js"></script>
+  <script src="./js/screens.js"></script>
   <script src="./js/report.js"></script>
-  <script src="./js/game.js"></script>
-  <script src="./js/pwa.js"></script>
   <script src="./js/main.js"></script>
 </body>
 </html>
