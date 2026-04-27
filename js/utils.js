@@ -185,6 +185,47 @@ BBMV.utils = {
     el.querySelector('#bbmv-crash-reload').onclick = () => location.reload();
   },
 
+  showFallbackScreen: (reason = 'unknown') => {
+    console.error('[BBMV] showFallbackScreen:', reason);
+    const app = BBMV.utils.$('app') || document.body;
+    if (!app) return;
+
+    BBMV.utils.setTransitioning(false);
+    document.querySelectorAll('.screen').forEach((s) => {
+      s.classList.remove('active', 'slide-in');
+      s.setAttribute('aria-hidden', 'true');
+    });
+
+    let fallback = BBMV.utils.$('screen-fallback');
+    if (!fallback) {
+      fallback = document.createElement('div');
+      fallback.id = 'screen-fallback';
+      fallback.className = 'screen active';
+      fallback.setAttribute('aria-hidden', 'false');
+      fallback.innerHTML = `
+        <div style="max-width:420px;margin:40px auto;padding:24px;border-radius:24px;background:#fff;box-shadow:0 16px 40px rgba(45,74,90,0.2);text-align:center;">
+          <h2 style="margin:0 0 10px;font-family:'Baloo 2',cursive;color:#2D4A5A;">⚠️ Ứng dụng đang phục hồi</h2>
+          <p style="margin:0 0 16px;color:#3C5968;line-height:1.5;">Đã xảy ra lỗi ở một module. Bạn vẫn có thể quay về màn hình chọn hồ sơ.</p>
+          <button id="btn-fallback-profiles" style="border:none;border-radius:99px;padding:12px 16px;background:linear-gradient(135deg,#8DD5EE,#5BC4E8);color:#fff;font-weight:700;cursor:pointer;">Về chọn hồ sơ</button>
+        </div>
+      `;
+      app.appendChild(fallback);
+      fallback.querySelector('#btn-fallback-profiles')?.addEventListener('pointerdown', () => {
+        const profiles = BBMV.utils.$('screen-profiles');
+        fallback.classList.remove('active');
+        fallback.setAttribute('aria-hidden', 'true');
+        if (profiles) {
+          profiles.classList.add('active');
+          profiles.setAttribute('aria-hidden', 'false');
+          BBMV.utils._lastScreenId = 'screen-profiles';
+        }
+      });
+    } else {
+      fallback.classList.add('active');
+      fallback.setAttribute('aria-hidden', 'false');
+    }
+  },
+
   loadScript: (src) => new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
     const s = document.createElement('script');

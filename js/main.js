@@ -8,12 +8,14 @@ const installDiagnostics = () => {
   window.addEventListener('error', (e) => {
     console.error('[BBMV] Runtime error:', e.error || e.message || e);
     BBMV.utils.showCrashOverlay(e.message || String(e.error || 'Unknown runtime error'));
+    BBMV.utils.showFallbackScreen('window.error');
   });
 
   window.addEventListener('unhandledrejection', (e) => {
     const reason = e.reason?.message || String(e.reason || 'Unhandled promise rejection');
     console.error('[BBMV] Unhandled rejection:', e.reason || e);
     BBMV.utils.showCrashOverlay(reason);
+    BBMV.utils.showFallbackScreen('unhandledrejection');
   });
 
   setInterval(() => {
@@ -27,14 +29,13 @@ const installDiagnostics = () => {
 };
 
 const installAudioUnlock = () => {
-  let unlocked = false;
-
   const unlock = async () => {
-    if (unlocked) return;
+    if (BBMV.audio.hasUserGesture?.()) return;
+    BBMV.audio.markUserGesture?.();
     try {
       const ok = await BBMV.audio.resume();
       if (!ok) return;
-      unlocked = true;
+      console.log('[BBMV] Audio unlocked by real user gesture.');
     } catch (err) {
       console.warn('[BBMV] Audio unlock failed:', err);
       return;
@@ -49,7 +50,47 @@ const installAudioUnlock = () => {
   document.addEventListener('keydown', unlock, true);
 };
 
+const runStep = (name, fn, options = {}) => {
+  const { fatal = false } = options;
+  try {
+    console.log(`[BBMV] Step: ${name}`);
+    return fn();
+  } catch (err) {
+    console.error(`[BBMV] Step failed: ${name}`, err);
+    if (fatal) throw err;
+    BBMV.utils.showFallbackScreen(name);
+    return null;
+  }
+};
+
+const loadProfilesSafely = () => {
+  try {
+    BBMV.profile.renderProfilesScreen();
+    const shown = BBMV.utils.showScreen('screen-profiles');
+    if (!shown) throw new Error('Unable to show screen-profiles');
+    const profiles = BBMV.profile.getAll();
+    console.log(`[BBMV] Profile loaded: ${profiles.length}`);
+    if (profiles.length > 0) {
+      setTimeout(() => {
+        BBMV.audio.speak('Chào con! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!');
+      }, 500);
+    }
+  } catch (err) {
+    console.error('[BBMV] loadProfilesSafely failed, reset profile data:', err);
+    BBMV.utils.lsSet('bbmv_profiles', []);
+    BBMV.utils.showToast('Dữ liệu hồ sơ bị lỗi, đã reset về mặc định.');
+    try {
+      BBMV.profile.renderProfilesScreen();
+      BBMV.utils.showScreen('screen-profiles');
+    } catch (retryErr) {
+      console.error('[BBMV] Profile recovery failed:', retryErr);
+      BBMV.utils.showFallbackScreen('profile-recovery');
+    }
+  }
+};
+
 const initApp = () => {
+  console.log('[BBMV] initApp start');
   installDiagnostics();
   installAudioUnlock();
 
@@ -64,40 +105,24 @@ const initApp = () => {
   BBMV.utils.showScreen('screen-loading');
   setProgress(10, 'Đang tải font chữ...');
 
-  BBMV.audio.preloadVoices();
+  runStep('audio.preloadVoices', () => BBMV.audio.preloadVoices());
   setProgress(30, 'Đang chuẩn bị âm thanh...');
 
-  const s = BBMV.settings.get();
-  BBMV.settings.applySettings(s);
+  const s = runStep('settings.get', () => BBMV.settings.get()) || {};
+  runStep('settings.apply', () => BBMV.settings.applySettings(s));
   setProgress(50, 'Đang tải cài đặt...');
 
-  BBMV.pwa.register();
+  runStep('pwa.register', () => BBMV.pwa.register());
   setProgress(70, 'Đang khởi tạo game...');
 
-  BBMV.game.init();
+  runStep('game.init', () => BBMV.game.init(), { fatal: true });
   setProgress(90, 'Đang khởi động...');
 
-  bindAllEvents();
+  runStep('bindAllEvents', () => bindAllEvents(), { fatal: true });
   setProgress(100, 'Sẵn sàng!');
 
   setTimeout(() => {
-    try {
-      BBMV.profile.renderProfilesScreen();
-      const shown = BBMV.utils.showScreen('screen-profiles');
-      if (!shown) throw new Error('Unable to show screen-profiles');
-
-      const profiles = BBMV.profile.getAll();
-      if (profiles.length > 0) {
-        setTimeout(() => {
-          // Chỉ đọc giọng nói, không khởi tạo AudioContext ở đây để tránh warning autoplay.
-          BBMV.audio.speak('Chào con! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!');
-        }, 500);
-      }
-    } catch (err) {
-      console.error('[BBMV] Boot fallback failed, forcing profile screen:', err);
-      BBMV.utils.showScreen('screen-profiles');
-      BBMV.utils.showToast('Đã phục hồi giao diện. Nếu còn lỗi, vui lòng tải lại ứng dụng.');
-    }
+    loadProfilesSafely();
   }, 1200);
 };
 

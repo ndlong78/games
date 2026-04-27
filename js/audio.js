@@ -10,6 +10,7 @@ BBMV.audio = (() => {
   let musicInterval = null;
   let speechQueue = [];
   let speechBusy = false;
+  let userGestureUnlocked = false;
 
   const init = () => {
     if (ctx) return ctx;
@@ -31,6 +32,10 @@ BBMV.audio = (() => {
   };
 
   const resume = async () => {
+    if (!userGestureUnlocked) {
+      console.log('[BBMV] Audio resume blocked: waiting for user gesture.');
+      return false;
+    }
     const audioCtx = init();
     if (!audioCtx) return false;
     try {
@@ -120,6 +125,7 @@ BBMV.audio = (() => {
   };
 
   const startMusic = async () => {
+    if (!userGestureUnlocked) return;
     const ok = await resume();
     if (!ok || musicPlaying) return;
     musicPlaying = true;
@@ -207,9 +213,16 @@ BBMV.audio = (() => {
     }
   };
 
+  const markUserGesture = () => {
+    userGestureUnlocked = true;
+  };
+
+  const hasUserGesture = () => userGestureUnlocked;
+
   return {
     init, resume, sfx,
     startMusic, stopMusic, setMusicVol, setSfxVol,
-    speak, stopSpeech, preloadVoices, isReady
+    speak, stopSpeech, preloadVoices, isReady,
+    markUserGesture, hasUserGesture
   };
 })();
