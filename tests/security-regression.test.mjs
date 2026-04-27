@@ -101,8 +101,8 @@ test('showScreen không làm trắng app khi id màn hình không tồn tại', 
     };
   };
 
-  const activeScreen = { id: 'screen-profiles', classList: mkClassList(['screen', 'active']) };
-  const otherScreen = { id: 'screen-menu', classList: mkClassList(['screen']) };
+  const activeScreen = { id: 'screen-profiles', classList: mkClassList(['screen', 'active']), setAttribute() {} };
+  const otherScreen = { id: 'screen-menu', classList: mkClassList(['screen']), setAttribute() {} };
   const screens = [activeScreen, otherScreen];
 
   const sandbox = {
@@ -134,4 +134,47 @@ test('showScreen không làm trắng app khi id màn hình không tồn tại', 
   assert.equal(ok, false);
   assert.equal(activeScreen.classList.contains('active'), true);
   assert.equal(otherScreen.classList.contains('active'), false);
+});
+
+test('showScreen tự phục hồi trạng thái transition khi requestAnimationFrame lỗi', () => {
+  const localStorage = createStorage();
+  const mkClassList = (initial = []) => {
+    const set = new Set(initial);
+    return {
+      add: (...names) => names.forEach((n) => set.add(n)),
+      remove: (...names) => names.forEach((n) => set.delete(n)),
+      contains: (name) => set.has(name)
+    };
+  };
+
+  const targetScreen = { id: 'screen-profiles', classList: mkClassList(['screen']), setAttribute() {} };
+  const screens = [targetScreen];
+  const sandbox = {
+    window: {},
+    BBMV: undefined,
+    localStorage,
+    document: {
+      getElementById: (id) => screens.find((s) => s.id === id) || null,
+      querySelector: () => null,
+      querySelectorAll: (selector) => selector === '.screen' ? screens : [],
+      createElement: () => ({ style: {}, appendChild() {}, querySelector: () => ({}) }),
+      head: { appendChild() {} },
+      body: { appendChild() {} }
+    },
+    requestAnimationFrame: () => { throw new Error('raf-failed'); },
+    setTimeout,
+    clearTimeout,
+    Date,
+    Math,
+    JSON,
+    Object,
+    console
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(utilsCode, sandbox);
+  const utils = sandbox.window.BBMV.utils;
+
+  const ok = utils.showScreen('screen-profiles');
+  assert.equal(ok, false);
+  assert.equal(utils._transitioning, false);
 });

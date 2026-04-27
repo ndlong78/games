@@ -7,6 +7,7 @@ const BBMV = window.BBMV || {};
 BBMV.utils = {
   _lastScreenId: null,
   _transitioning: false,
+  _transitionSince: 0,
 
   $: (id) => document.getElementById(id),
   lerp: (a, b, t) => a + (b - a) * t,
@@ -113,6 +114,7 @@ BBMV.utils = {
 
   setTransitioning: (value) => {
     BBMV.utils._transitioning = !!value;
+    BBMV.utils._transitionSince = value ? Date.now() : 0;
   },
 
   showScreen: (id) => {
@@ -122,20 +124,41 @@ BBMV.utils = {
       return false;
     }
 
-    BBMV.utils.setTransitioning(true);
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'slide-in'));
-    target.classList.add('active');
-    BBMV.utils._lastScreenId = id;
+    try {
+      BBMV.utils.setTransitioning(true);
+      document.querySelectorAll('.screen').forEach((s) => {
+        s.classList.remove('active', 'slide-in');
+        s.setAttribute('aria-hidden', 'true');
+      });
+      target.classList.add('active');
+      target.setAttribute('aria-hidden', 'false');
+      BBMV.utils._lastScreenId = id;
 
-    requestAnimationFrame(() => {
-      target.classList.add('slide-in');
-      setTimeout(() => BBMV.utils.setTransitioning(false), 500);
-    });
-    return true;
+      requestAnimationFrame(() => {
+        target.classList.add('slide-in');
+        setTimeout(() => BBMV.utils.setTransitioning(false), 500);
+      });
+
+      // Failsafe: nếu animation callback bị miss (Safari/background tab), vẫn mở lại state.
+      setTimeout(() => {
+        if (!target.classList.contains('active')) target.classList.add('active');
+        BBMV.utils.setTransitioning(false);
+      }, 900);
+      return true;
+    } catch (err) {
+      BBMV.utils.setTransitioning(false);
+      console.error('[BBMV] showScreen failed:', err);
+      return false;
+    }
   },
 
   ensureVisibleScreen: () => {
-    if (BBMV.utils._transitioning) return true;
+    if (BBMV.utils._transitioning) {
+      const elapsed = Date.now() - (BBMV.utils._transitionSince || 0);
+      if (elapsed < 1500) return true;
+      console.warn('[BBMV] Transition timeout, force recovering visible screen.');
+      BBMV.utils.setTransitioning(false);
+    }
     const active = document.querySelector('.screen.active');
     if (active) return true;
     const fallbackId = BBMV.utils._lastScreenId || 'screen-profiles';

@@ -81,15 +81,22 @@ const initApp = () => {
   setProgress(100, 'Sẵn sàng!');
 
   setTimeout(() => {
-    BBMV.profile.renderProfilesScreen();
-    BBMV.utils.showScreen('screen-profiles');
+    try {
+      BBMV.profile.renderProfilesScreen();
+      const shown = BBMV.utils.showScreen('screen-profiles');
+      if (!shown) throw new Error('Unable to show screen-profiles');
 
-    const profiles = BBMV.profile.getAll();
-    if (profiles.length > 0) {
-      setTimeout(() => {
-        // Chỉ đọc giọng nói, không khởi tạo AudioContext ở đây để tránh warning autoplay.
-        BBMV.audio.speak('Chào con! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!');
-      }, 500);
+      const profiles = BBMV.profile.getAll();
+      if (profiles.length > 0) {
+        setTimeout(() => {
+          // Chỉ đọc giọng nói, không khởi tạo AudioContext ở đây để tránh warning autoplay.
+          BBMV.audio.speak('Chào con! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!');
+        }, 500);
+      }
+    } catch (err) {
+      console.error('[BBMV] Boot fallback failed, forcing profile screen:', err);
+      BBMV.utils.showScreen('screen-profiles');
+      BBMV.utils.showToast('Đã phục hồi giao diện. Nếu còn lỗi, vui lòng tải lại ứng dụng.');
     }
   }, 1200);
 };
