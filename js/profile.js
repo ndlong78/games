@@ -19,7 +19,7 @@ BBMV.profile = (() => {
 
   const buildDefaultProfile = () => ({
     id: BBMV.utils.uuid(),
-    name: 'Bé mới',
+    name: 'Bé',
     avatar: AVATARS[0],
     age: 5,
     eye: 'right',
@@ -119,7 +119,7 @@ BBMV.profile = (() => {
     if (shouldRewrite) {
       BBMV.utils.lsSet(LS_KEY, safeList);
     }
-    console.log('[BBMV] default profile ready', defaultProfile);
+    console.log('[BBMV] Default profile loaded');
     return defaultProfile;
   };
 
