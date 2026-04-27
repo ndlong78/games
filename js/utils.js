@@ -226,6 +226,51 @@ BBMV.utils = {
     }
   },
 
+  showFatalError: (message, error = null) => {
+    const safeMessage = message || 'Đã có lỗi không mong muốn xảy ra.';
+    const details = error?.message || String(error || '');
+    console.error('[BBMV] Fatal error screen:', safeMessage, error || '');
+
+    BBMV.utils.setTransitioning(false);
+    document.querySelectorAll('.screen').forEach((s) => {
+      s.classList.remove('active', 'slide-in');
+      s.setAttribute('aria-hidden', 'true');
+    });
+
+    const app = BBMV.utils.$('app') || document.body;
+    if (!app) return;
+
+    let fatal = BBMV.utils.$('screen-fatal-error');
+    if (!fatal) {
+      fatal = document.createElement('div');
+      fatal.id = 'screen-fatal-error';
+      fatal.className = 'screen';
+      app.appendChild(fatal);
+    }
+
+    fatal.innerHTML = `
+      <div style="max-width:460px;margin:40px auto;padding:24px;border-radius:24px;background:#fff;box-shadow:0 16px 40px rgba(45,74,90,0.2);text-align:center;">
+        <h2 style="margin:0 0 10px;font-family:'Baloo 2',cursive;color:#2D4A5A;">⚠️ Không thể mở hồ sơ</h2>
+        <p style="margin:0 0 10px;color:#3C5968;line-height:1.5;">${BBMV.utils.escapeHTML(safeMessage)}</p>
+        ${details ? `<p style="margin:0 0 16px;color:#6B7F8A;font-size:13px;line-height:1.45;">Chi tiết: ${BBMV.utils.escapeHTML(details)}</p>` : ''}
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button id="btn-fatal-back-profiles" style="border:none;border-radius:99px;padding:12px 16px;background:linear-gradient(135deg,#8DD5EE,#5BC4E8);color:#fff;font-weight:700;cursor:pointer;">Về chọn hồ sơ</button>
+          <button id="btn-fatal-reload" style="border:2px solid #CDE6F0;border-radius:99px;padding:12px 16px;background:#fff;color:#2D4A5A;font-weight:700;cursor:pointer;">Tải lại</button>
+        </div>
+      </div>
+    `;
+
+    fatal.classList.add('active');
+    fatal.setAttribute('aria-hidden', 'false');
+    BBMV.utils._lastScreenId = 'screen-fatal-error';
+
+    fatal.querySelector('#btn-fatal-back-profiles')?.addEventListener('pointerdown', () => {
+      const ok = BBMV.utils.showScreen('screen-profiles');
+      if (!ok) BBMV.utils.showFallbackScreen('fatal-back-profiles');
+    });
+    fatal.querySelector('#btn-fatal-reload')?.addEventListener('pointerdown', () => location.reload());
+  },
+
   loadScript: (src) => new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
     const s = document.createElement('script');

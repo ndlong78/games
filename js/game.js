@@ -45,6 +45,11 @@ BBMV.game = (() => {
   };
 
   const startGame = (lvl = 1, wv = 1, options = {}) => {
+    const activeProfile = BBMV.profile.getCurrent();
+    if (!activeProfile) {
+      BBMV.utils.showFatalError?.('Không tìm thấy hồ sơ đang hoạt động. Vui lòng chọn hồ sơ lại.');
+      return;
+    }
     level = lvl; wave = wv;
     gameState = 'playing';
     caughtCount = 0; missedCount = 0;

@@ -4,6 +4,7 @@
 
 BBMV.profile = (() => {
   const LS_KEY = 'bbmv_profiles';
+  const ACTIVE_PROFILE_KEY = 'bbmv_active_profile_id';
   const AVATARS = ['🐣','🐥','🐰','🐻','🦊','🐸','🦄','🐼'];
   const EYE_LABEL = { left: 'Mắt trái', right: 'Mắt phải', both: 'Cả hai mắt' };
 
@@ -83,13 +84,34 @@ BBMV.profile = (() => {
   };
   const getById = (id) => getAll().find(p => p.id === id) || null;
 
+  const isValidProfileForPlay = (profile) => {
+    if (!profile || typeof profile !== 'object') return false;
+    if (typeof profile.id !== 'string' || profile.id.length < 6) return false;
+    if (!BBMV.utils.isValidChildName(profile.name)) return false;
+    if (!AVATARS.includes(profile.avatar)) return false;
+    if (!Number.isFinite(Number(profile.age))) return false;
+    if (!['left', 'right', 'both'].includes(profile.eye)) return false;
+    return true;
+  };
+
   const getCurrent = () => {
+    if (!currentProfileId) {
+      const persistedId = BBMV.utils.lsGet(ACTIVE_PROFILE_KEY, null);
+      if (typeof persistedId === 'string' && persistedId) currentProfileId = persistedId;
+    }
     if (!currentProfileId) return null;
-    return getById(currentProfileId);
+    const profile = getById(currentProfileId);
+    if (!profile) {
+      BBMV.utils.lsDel(ACTIVE_PROFILE_KEY);
+      currentProfileId = null;
+    }
+    return profile;
   };
 
   const setCurrent = (id) => {
     currentProfileId = getById(id) ? id : null;
+    if (currentProfileId) BBMV.utils.lsSet(ACTIVE_PROFILE_KEY, currentProfileId);
+    else BBMV.utils.lsDel(ACTIVE_PROFILE_KEY);
     return currentProfileId;
   };
 
@@ -115,8 +137,47 @@ BBMV.profile = (() => {
     let list = getAll();
     list = list.filter(p => p.id !== id);
     saveAll(list);
+    if (currentProfileId === id) {
+      currentProfileId = null;
+      BBMV.utils.lsDel(ACTIVE_PROFILE_KEY);
+    }
     const sessions = BBMV.utils.lsGet('bbmv_sessions', []);
     BBMV.utils.lsSet('bbmv_sessions', sessions.filter(s => s.profileId !== id));
+  };
+
+  const selectProfile = (profileId) => {
+    try {
+      console.log('[BBMV] profile.select', profileId);
+      const profile = getById(profileId);
+      if (!profile) throw new Error(`Profile not found: ${profileId}`);
+      console.log('[BBMV] profile.select profile found', profile.id);
+
+      if (!isValidProfileForPlay(profile)) {
+        throw new Error(`Profile invalid fields: ${profile.id}`);
+      }
+
+      const selectedId = setCurrent(profile.id);
+      if (!selectedId) throw new Error(`Failed to set active profile: ${profile.id}`);
+      console.log('[BBMV] profile.select activeProfile saved', selectedId);
+
+      const rendered = renderMenuScreen();
+      if (!rendered) throw new Error('renderMenuScreen() failed');
+      console.log('[BBMV] profile.select menu/home rendered');
+
+      const shown = BBMV.utils.showScreen('screen-menu');
+      if (!shown) throw new Error('showScreen(screen-menu) failed');
+      console.log('[BBMV] profile.select screen changed', 'screen-menu');
+
+      BBMV.audio.speak(`Chào ${profile.name}! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!`, true);
+      return true;
+    } catch (err) {
+      console.error('[BBMV] Failed to select profile:', err);
+      BBMV.utils.showFatalError(
+        'Không thể mở hồ sơ này. Vui lòng kiểm tra dữ liệu hồ sơ hoặc tạo hồ sơ mới.',
+        err
+      );
+      return false;
+    }
   };
 
   const renderProfilesScreen = () => {
@@ -152,25 +213,7 @@ BBMV.profile = (() => {
       card.addEventListener('pointerdown', (e) => {
         if (e.target instanceof Element && e.target.closest('.profile-delete')) return;
         BBMV.audio.sfx.button();
-        const selectedId = setCurrent(p.id);
-        if (!selectedId) {
-          BBMV.utils.showToast('Không thể mở hồ sơ này. Vui lòng tạo lại hồ sơ mới.');
-          renderProfilesScreen();
-          return;
-        }
-        try {
-          console.log('[BBMV] profile.select', p.id);
-          const rendered = renderMenuScreen();
-          if (!rendered) throw new Error('renderMenuScreen() failed');
-          const shown = BBMV.utils.showScreen('screen-menu');
-          if (!shown) throw new Error('showScreen(screen-menu) failed');
-          BBMV.audio.speak(`Chào ${p.name}! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!`, true);
-        } catch (err) {
-          console.error('[BBMV] Failed to open profile menu:', err);
-          BBMV.utils.showToast('Có lỗi khi mở hồ sơ. Vui lòng thử lại.');
-          BBMV.utils.showScreen('screen-profiles');
-          renderProfilesScreen();
-        }
+        selectProfile(p.id);
       });
       card.querySelector('.profile-delete')?.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
@@ -294,26 +337,56 @@ BBMV.profile = (() => {
     try {
       const p = getCurrent();
       if (!p) {
-        const chipName = BBMV.utils.$('chip-name');
-        if (chipName) chipName.textContent = 'Hồ sơ lỗi';
-        BBMV.utils.showToast('Hồ sơ bị lỗi dữ liệu. Vui lòng tạo lại hồ sơ hoặc reset dữ liệu.');
-        return false;
+        throw new Error('No active profile');
+      }
+      if (!isValidProfileForPlay(p)) {
+        throw new Error(`Active profile has invalid fields: ${p.id || 'unknown'}`);
       }
       const chipAvatar = BBMV.utils.$('chip-avatar');
       const chipName = BBMV.utils.$('chip-name');
-      if (chipAvatar) chipAvatar.textContent = p.avatar;
-      if (chipName) chipName.textContent = p.name;
+      if (!chipAvatar || !chipName) {
+        throw new Error('Missing required menu DOM elements: #chip-avatar or #chip-name');
+      }
+      chipAvatar.textContent = p.avatar;
+      chipName.textContent = p.name;
 
-      const streak = BBMV.gamification ? BBMV.gamification.getStreak(p.id) : 0;
+      if (!BBMV.utils.$('screen-menu')) {
+        throw new Error('Missing menu screen element: #screen-menu');
+      }
+
+      if (!BBMV.gamification || typeof BBMV.gamification.getStreak !== 'function') {
+        throw new Error('gamification.getStreak is unavailable');
+      }
+      const streak = BBMV.gamification.getStreak(p.id);
       const streakEl = BBMV.utils.$('menu-streak');
-      if (streakEl) streakEl.textContent = streak > 0 ? `🔥 ${streak} ngày` : `🌟 Chơi thôi!`;
+      if (!streakEl) {
+        throw new Error('Missing required menu DOM element: #menu-streak');
+      }
+      streakEl.textContent = streak > 0 ? `🔥 ${streak} ngày` : `🌟 Chơi thôi!`;
       return true;
     } catch (err) {
       console.error('[BBMV][profile] renderMenuScreen failed:', err);
-      BBMV.utils.showToast('Hồ sơ bị lỗi dữ liệu. Vui lòng tạo lại hồ sơ hoặc reset dữ liệu.');
+      if (typeof BBMV.utils.showFatalError === 'function') {
+        BBMV.utils.showFatalError('Không thể render màn hình menu từ hồ sơ đã chọn.', err);
+      } else {
+        BBMV.utils.showFallbackScreen('renderMenuScreen-failed');
+      }
       return false;
     }
   };
+
+  const restoreActiveProfile = () => {
+    const id = BBMV.utils.lsGet(ACTIVE_PROFILE_KEY, null);
+    if (typeof id !== 'string' || !id) return null;
+    return setCurrent(id);
+  };
+
+  const clearActiveProfile = () => {
+    currentProfileId = null;
+    BBMV.utils.lsDel(ACTIVE_PROFILE_KEY);
+  };
+
+  const getActiveProfileKey = () => ACTIVE_PROFILE_KEY;
 
   const bindEvents = () => {
     BBMV.utils.$('btn-add-profile')?.addEventListener('pointerdown', () => {
@@ -330,6 +403,7 @@ BBMV.profile = (() => {
     });
     BBMV.utils.$('btn-switch-profile')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
+      clearActiveProfile();
       BBMV.utils.showScreen('screen-profiles');
       renderProfilesScreen();
     });
@@ -340,6 +414,7 @@ BBMV.profile = (() => {
 
   return {
     getAll, getById, getCurrent, setCurrent, create, update, remove,
+    selectProfile, restoreActiveProfile, clearActiveProfile, getActiveProfileKey,
     renderProfilesScreen, renderMenuScreen, openModal, closeModal,
     bindEvents, AVATARS, EYE_LABEL
   };

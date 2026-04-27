@@ -68,6 +68,8 @@ const loadProfilesSafely = () => {
     BBMV.profile.renderProfilesScreen();
     const shown = BBMV.utils.showScreen('screen-profiles');
     if (!shown) throw new Error('Unable to show screen-profiles');
+    const restored = BBMV.profile.restoreActiveProfile?.();
+    console.log('[BBMV] Active profile key:', BBMV.profile.getActiveProfileKey?.(), 'restored:', restored || 'none');
     const profiles = BBMV.profile.getAll();
     console.log(`[BBMV] Profile loaded: ${profiles.length}`);
     if (profiles.length > 0) {

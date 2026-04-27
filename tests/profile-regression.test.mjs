@@ -92,6 +92,13 @@ test('setCurrent không giữ id không tồn tại', () => {
   assert.equal(profile.getCurrent()?.id, 'profile01');
 });
 
+test('setCurrent lưu active profile vào localStorage key thống nhất', () => {
+  const { profile, localStorage } = loadProfileModule([{ id: 'profile99', name: 'Bé Na', avatar: '🐥', age: 6, eye: 'both' }]);
+  assert.equal(profile.getActiveProfileKey(), 'bbmv_active_profile_id');
+  assert.equal(profile.setCurrent('profile99'), 'profile99');
+  assert.equal(localStorage.getItem('bbmv_active_profile_id'), JSON.stringify('profile99'));
+});
+
 test('không crash khi bbmv_streak bị null lúc mở menu profile', () => {
   const localStorage = createStorage();
   localStorage.setItem('bbmv_profiles', JSON.stringify([{ id: 'profile01', name: 'Bong', avatar: '🐣', age: 5, eye: 'right' }]));
