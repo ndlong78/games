@@ -31,7 +31,8 @@
     unlockAudio();
     const banner = $('goal-banner');
     banner.classList.remove('hidden');
-    banner.textContent = '🎮 Phiên chơi liên tục 2 phút bắt đầu!';
+    const sessionSeconds = cfg.GAME.SESSION_SECONDS;
+    banner.textContent = `🎮 Phiên chơi liên tục ${Math.round(sessionSeconds / 60)} phút bắt đầu!`;
     setTimeout(() => banner.classList.add('hidden'), 1200);
     window.FFV_SCREENS.show('screen-game');
     window.FFV_GAME.start();
@@ -84,7 +85,8 @@
   }
 
   function restoreLevel() {
-    $('menu-level').textContent = 'Phiên 2 phút liên tục';
+    const sessionSeconds = cfg.GAME.SESSION_SECONDS;
+    $('menu-level').textContent = `Phiên ${Math.round(sessionSeconds / 60)} phút liên tục`;
   }
 
   document.addEventListener('DOMContentLoaded', init);
