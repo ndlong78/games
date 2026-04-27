@@ -5,6 +5,7 @@
 BBMV.profile = (() => {
   const LS_KEY = 'bbmv_profiles';
   const ACTIVE_PROFILE_KEY = 'bbmv_active_profile_id';
+  const DEFAULT_PROFILE_ID = 'default-child';
   const AVATARS = ['🐣','🐥','🐰','🐻','🦊','🐸','🦄','🐼'];
   const EYE_LABEL = { left: 'Mắt trái', right: 'Mắt phải', both: 'Cả hai mắt' };
 
@@ -25,6 +26,21 @@ BBMV.profile = (() => {
     createdAt: BBMV.utils.now()
   });
 
+  const buildTemporaryDefaultChildProfile = () => ({
+    id: DEFAULT_PROFILE_ID,
+    name: 'Bé',
+    age: 5,
+    ageGroup: '4-7',
+    weakEye: 'right',
+    createdAt: BBMV.utils.now(),
+    sessions: [],
+    badges: [],
+    settings: {},
+    // Trường tương thích để các module cũ không bị vỡ
+    avatar: AVATARS[0],
+    eye: 'right'
+  });
+
   const normalizeProfile = (raw, idx = 0) => {
     if (!raw || typeof raw !== 'object') return null;
 
@@ -32,13 +48,79 @@ BBMV.profile = (() => {
     const validName = BBMV.utils.isValidChildName(safeName) ? safeName : `Bé ${idx + 1}`;
     const parsedAge = Number.parseInt(raw.age, 10);
     const age = Number.isFinite(parsedAge) ? BBMV.utils.clamp(parsedAge, 3, 10) : 5;
-    const eye = ['left', 'right', 'both'].includes(raw.eye) ? raw.eye : 'right';
+    const weakEye = ['left', 'right', 'both'].includes(raw.weakEye) ? raw.weakEye : null;
+    const eye = ['left', 'right', 'both'].includes(raw.eye) ? raw.eye : (weakEye || 'right');
     const avatar = AVATARS.includes(raw.avatar) ? raw.avatar : AVATARS[0];
     const rawId = typeof raw.id === 'string' ? raw.id.trim() : '';
     const id = /^[a-zA-Z0-9_-]{6,64}$/.test(rawId) ? rawId : BBMV.utils.uuid();
     const createdAt = Number.isNaN(new Date(raw.createdAt).getTime()) ? BBMV.utils.now() : raw.createdAt;
+    const ageGroup = typeof raw.ageGroup === 'string' && raw.ageGroup
+      ? raw.ageGroup
+      : (age <= 7 ? '4-7' : '8-12');
+    const sessions = Array.isArray(raw.sessions) ? raw.sessions : [];
+    const badges = Array.isArray(raw.badges) ? raw.badges : [];
+    const settings = raw.settings && typeof raw.settings === 'object' ? raw.settings : {};
 
-    return { id, name: validName, avatar, age, eye, createdAt };
+    return { id, name: validName, avatar, age, eye, weakEye: eye, ageGroup, createdAt, sessions, badges, settings };
+  };
+
+  const ensureDefaultProfile = () => {
+    const fallbackProfile = buildTemporaryDefaultChildProfile();
+    let rawProfiles = null;
+    try {
+      rawProfiles = BBMV.utils.lsGet(LS_KEY, null, {
+        resetOnError: false,
+        logError: true,
+        logPrefix: '[BBMV][profile]'
+      });
+    } catch (err) {
+      console.error('[BBMV][profile] Unexpected profile storage read error:', err);
+    }
+
+    const source = Array.isArray(rawProfiles)
+      ? rawProfiles
+      : ((rawProfiles && typeof rawProfiles === 'object') ? Object.values(rawProfiles) : []);
+    const safeList = source.map((item, idx) => normalizeProfile(item, idx)).filter(Boolean);
+    let defaultProfile = safeList.find((p) => p.id === DEFAULT_PROFILE_ID) || null;
+    let shouldRewrite = !Array.isArray(rawProfiles);
+
+    if (!defaultProfile) {
+      defaultProfile = fallbackProfile;
+      safeList.unshift(defaultProfile);
+      shouldRewrite = true;
+    } else {
+      // Đồng bộ schema profile mặc định tạm thời
+      const merged = {
+        ...fallbackProfile,
+        ...defaultProfile,
+        id: DEFAULT_PROFILE_ID,
+        name: defaultProfile.name || fallbackProfile.name,
+        age: Number.isFinite(Number(defaultProfile.age)) ? Number(defaultProfile.age) : fallbackProfile.age,
+        ageGroup: defaultProfile.ageGroup || fallbackProfile.ageGroup,
+        weakEye: ['left', 'right', 'both'].includes(defaultProfile.weakEye) ? defaultProfile.weakEye : (defaultProfile.eye || 'right'),
+        eye: ['left', 'right', 'both'].includes(defaultProfile.eye) ? defaultProfile.eye : (defaultProfile.weakEye || 'right'),
+        createdAt: defaultProfile.createdAt || fallbackProfile.createdAt
+      };
+      if (JSON.stringify(merged) !== JSON.stringify(defaultProfile)) {
+        defaultProfile = merged;
+        const idx = safeList.findIndex((p) => p.id === DEFAULT_PROFILE_ID);
+        safeList[idx] = merged;
+        shouldRewrite = true;
+      }
+    }
+
+    const activeProfile = BBMV.utils.lsGet(ACTIVE_PROFILE_KEY, null);
+    if (activeProfile !== DEFAULT_PROFILE_ID) {
+      BBMV.utils.lsSet(ACTIVE_PROFILE_KEY, DEFAULT_PROFILE_ID);
+      shouldRewrite = true;
+    }
+    currentProfileId = DEFAULT_PROFILE_ID;
+
+    if (shouldRewrite) {
+      BBMV.utils.lsSet(LS_KEY, safeList);
+    }
+    console.log('[BBMV] default profile ready', defaultProfile);
+    return defaultProfile;
   };
 
   const getAll = () => {
@@ -403,10 +485,11 @@ BBMV.profile = (() => {
     });
     BBMV.utils.$('btn-switch-profile')?.addEventListener('pointerdown', () => {
       BBMV.audio.sfx.button();
-      clearActiveProfile();
-      BBMV.utils.showScreen('profile');
-      renderProfilesScreen();
+      BBMV.utils.showScreen('menu');
+      renderMenuScreen();
     });
+    const switchBtn = BBMV.utils.$('btn-switch-profile');
+    if (switchBtn) switchBtn.textContent = '🏠 Về menu';
     BBMV.utils.$('modal-profile')?.addEventListener('pointerdown', (e) => {
       if (e.target === BBMV.utils.$('modal-profile')) closeModal();
     });
@@ -416,6 +499,6 @@ BBMV.profile = (() => {
     getAll, getById, getCurrent, setCurrent, create, update, remove,
     selectProfile, restoreActiveProfile, clearActiveProfile, getActiveProfileKey,
     renderProfilesScreen, renderMenuScreen, openModal, closeModal,
-    bindEvents, AVATARS, EYE_LABEL
+    bindEvents, ensureDefaultProfile, AVATARS, EYE_LABEL
   };
 })();

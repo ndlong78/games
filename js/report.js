@@ -466,8 +466,9 @@ BBMV.report = (() => {
         BBMV.utils.lsSet('bbmv_badges', badges);
         BBMV.utils.lsSet('bbmv_streak', streak);
         BBMV.utils.lsSet('bbmv_settings', settings);
+        BBMV.profile.ensureDefaultProfile?.();
         BBMV.utils.showToast('✅ Đã nhập dữ liệu thành công!');
-        BBMV.profile.renderProfilesScreen();
+        BBMV.profile.renderMenuScreen?.();
       } catch(err) {
         console.error('[BBMV] restore error:', err);
         BBMV.utils.showToast('❌ File không hợp lệ!');
