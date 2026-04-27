@@ -65,18 +65,28 @@ test('migrate profile data cũ/object sang list hợp lệ', () => {
   assert.equal(list[0].name, 'bNam/b');
   assert.equal(list[0].age, 10);
   assert.equal(list[0].eye, 'right');
+  assert.match(list[0].id, /^[a-zA-Z0-9_-]{6,64}$/);
 
   const migrated = JSON.parse(localStorage.getItem('bbmv_profiles'));
   assert.equal(Array.isArray(migrated), true);
   assert.equal(migrated.length, 1);
 });
 
+test('id profile bẩn được thay bằng id an toàn', () => {
+  const legacy = [{ id: '"><img src=x onerror=1>', name: 'Bé Bin', avatar: '🐣', age: 5, eye: 'left' }];
+  const { profile } = loadProfileModule(legacy);
+  const list = profile.getAll();
+  assert.equal(list.length, 1);
+  assert.match(list[0].id, /^[a-zA-Z0-9_-]{6,64}$/);
+  assert.notEqual(list[0].id, legacy[0].id);
+});
+
 test('setCurrent không giữ id không tồn tại', () => {
-  const { profile } = loadProfileModule([{ id: 'p1', name: 'An', avatar: '🐣', age: 5, eye: 'right' }]);
+  const { profile } = loadProfileModule([{ id: 'profile01', name: 'An', avatar: '🐣', age: 5, eye: 'right' }]);
 
   assert.equal(profile.setCurrent('missing'), null);
   assert.equal(profile.getCurrent(), null);
 
-  assert.equal(profile.setCurrent('p1'), 'p1');
-  assert.equal(profile.getCurrent()?.id, 'p1');
+  assert.equal(profile.setCurrent('profile01'), 'profile01');
+  assert.equal(profile.getCurrent()?.id, 'profile01');
 });

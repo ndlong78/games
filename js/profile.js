@@ -23,7 +23,8 @@ BBMV.profile = (() => {
     const age = Number.isFinite(parsedAge) ? BBMV.utils.clamp(parsedAge, 3, 10) : 5;
     const eye = ['left', 'right', 'both'].includes(raw.eye) ? raw.eye : 'right';
     const avatar = AVATARS.includes(raw.avatar) ? raw.avatar : AVATARS[0];
-    const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id : BBMV.utils.uuid();
+    const rawId = typeof raw.id === 'string' ? raw.id.trim() : '';
+    const id = /^[a-zA-Z0-9_-]{6,64}$/.test(rawId) ? rawId : BBMV.utils.uuid();
     const createdAt = Number.isNaN(new Date(raw.createdAt).getTime()) ? BBMV.utils.now() : raw.createdAt;
 
     return { id, name: validName, avatar, age, eye, createdAt };
@@ -108,7 +109,7 @@ BBMV.profile = (() => {
         <button class="profile-delete" data-id="${p.id}" title="Xóa hồ sơ">✕</button>
       `;
       card.addEventListener('pointerdown', (e) => {
-        if (e.target.classList.contains('profile-delete')) return;
+        if (e.target instanceof Element && e.target.closest('.profile-delete')) return;
         BBMV.audio.sfx.button();
         const selectedId = setCurrent(p.id);
         if (!selectedId) {
@@ -120,7 +121,7 @@ BBMV.profile = (() => {
         BBMV.utils.showScreen('screen-menu');
         BBMV.audio.speak(`Chào ${p.name}! Hôm nay chúng ta cùng chơi Bướm Bay Mắt Vui nhé!`, true);
       });
-      card.querySelector('.profile-delete').addEventListener('pointerdown', (e) => {
+      card.querySelector('.profile-delete')?.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
         BBMV.utils.confirm(
           `Bạn có chắc muốn xóa hồ sơ của ${p.name}?`,
